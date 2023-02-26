@@ -1,4 +1,4 @@
-.PHONY: clean
+.PHONY: clean case_add case_sub case_mul case_div case_all
 
 out: calc case_all
 	./calc < case_all > out
@@ -19,7 +19,7 @@ case_all:
 	make case_sub
 	make case_mul
 	make case_div
-	cat case_add case_sub case_mul case_div > case_all
+cat case_add case_sub case_mul case_div > case_all
 
 # Your code here.
 
