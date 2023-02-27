@@ -5,16 +5,16 @@ out: calc.c case_all
 	./calc < case_all > out.txt
 case_add: case_add casegen.c
 	gcc -o casegen casegen.c 
-	 echo "add 100" > ./casegen > case_add.txt
+	./casegen add 100 > case_add.txt
 case_sub: case_sub casegen.c
 	gcc -o casegen casegen.c
-	 echo "sub 100" | ./casegen > case_sub.txt
+	./casegen sub 100 > case_sub.txt
 case_mul: case_mul casegen.c
 	gcc -o casegen casegen.c
-	 echo "mul 100" | ./casegen  > case_mul.txt
+	./casegen mul 100 > case_mul.txt
 case_div: case_div casegen.c
 	gcc -o casegen casegen.c
-	 echo "div 100" | ./casegen > case_div.txt
+	./casegen div 100 > case_div.txt
 case_all:
 	make case_add
 	make case_sub
