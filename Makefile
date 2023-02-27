@@ -1,26 +1,26 @@
-.PHONY: clean case_add case_sub case_mul case_div case_all out
+.PHONY: clean out case_all case_add case_sub case_mul case_div 
 
-out: calc.c case_all
+out: calc.c 
 	gcc -o calc calc.c
-	./calc < case_all > out.txt
-case_add: case_add casegen.c
+	./calc < case_all > out
+case_add: casegen.c
 	gcc -o casegen casegen.c 
-	./casegen add 100 > case_add.txt
-case_sub: case_sub casegen.c
+	./casegen add 100 > case_add
+case_sub: casegen.c
 	gcc -o casegen casegen.c
-	./casegen sub 100 > case_sub.txt
-case_mul: case_mul casegen.c
+	./casegen sub 100 > case_sub
+case_mul: casegen.c
 	gcc -o casegen casegen.c
-	./casegen mul 100 > case_mul.txt
-case_div: case_div casegen.c
+	./casegen mul 100 > case_mul
+case_div: casegen.c
 	gcc -o casegen casegen.c
-	./casegen div 100 > case_div.txt
+	./casegen div 100 > case_div
 case_all:
 	make case_add
 	make case_sub
 	make case_mul
 	make case_div
-	cat case_add.txt  case_sub.txt case_mul.txt case_div.txt > case_all.txt
+	cat case_add case_sub case_mul case_div > case_all
 
 
 clean:
