@@ -1,28 +1,27 @@
 .PHONY: clean case_add case_sub case_mul case_div case_all out
 
-out: calc case_all
-	gcc calc.c calc
-	./calc < case_all > out
-case_add: case_add casegen
-	gcc casegen.c casegen 
-	./casegen < cat "add 100" > case_add
-case_sub: case_sub casegen
-	gcc casegen.c casegen
-	./casegen < cat "sub 100" > case_sub
-case_mul: case_mul casegen
-	gcc casegen.c casegen
-	./casegen < cat "mul 100" > case_mul
-case_div: case_div casegen
-	gcc casegen.c casegen
-	./casegen < cat "div 100" > case_div
+out: calc.c case_all
+	gcc -o calc calc.c
+	./calc < case_all > out.txt
+case_add: case_add casegen.c
+	gcc -o casegen casegen.c 
+	 cat "add 100" | ./casegen > case_add.txt
+case_sub: case_sub casegen.c
+	gcc -o casegen casegen.c
+	 cat "sub 100" | ./casegen > case_sub.txt
+case_mul: case_mul casegen.c
+	gcc -o casegen casegen.c
+	 cat "mul 100" | ./casegen  > case_mul.txt
+case_div: case_div casegen.c
+	gcc -o casegen casegen.c
+	 cat "div 100" | ./casegen > case_div.txt
 case_all:
 	make case_add
 	make case_sub
 	make case_mul
 	make case_div
-	cat case_add case_sub case_mul case_div > case_all
+	cat case_add case_sub case_mul case_div > case_all.txt
 
-# Your code here.
 
 clean:
 	rm -f out calc casegen case_*
