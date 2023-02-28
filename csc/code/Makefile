@@ -1,4 +1,4 @@
-all: fibo.c main.c
-	gcc -c fibo.c -o fibo -I../include
-	gcc -c main.c -o main -I../include
+method: fibo.c main.c
+	gcc -c fibo.c -o fibo.o -I../include
+	gcc -c main.c -o main.o -I../include
 
