@@ -1,3 +1,3 @@
-all:palindrome.c
-	gcc -o palindrom palindrome.c
+all : palindrome.c
+	gcc -o palindrome palindrome.c
 
