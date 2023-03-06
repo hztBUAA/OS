@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if [ $# -eq 1 ];
+if [ $# -eq 2 ];
 then
     # Your code here. (1/4)
 	grep "WARN|ERROR" $1 > bug.txt
