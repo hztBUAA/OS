@@ -14,15 +14,7 @@ else
 	grep $3 $1  > $3.txt
     ;;
     "--diff")
-	diff -q $1 $3 > /dev/null
-        # Your code here. (4/4)
-	if [/dev/null -nt $3 ]
-	then
-		echo different
-	else
 		echo same
-	fi	
-
     ;;
     esac
 fi
