@@ -24,4 +24,4 @@ case_all:
 
 
 clean:
-	rm -f out calc casegen case_*
+	rm out calc casegen case_*
