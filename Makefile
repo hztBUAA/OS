@@ -1,4 +1,4 @@
-.PHONY: clean out
+.PHONY: clean 
 
 out: calc.c case_all
 	gcc cal.c -o calc
