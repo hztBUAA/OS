@@ -1,4 +1,4 @@
-.PHONY: clean 
+.PHONY: clean case_add case_sub case_mul case_div out
 
 out: calc.c case_all
 	gcc cal.c -o calc
