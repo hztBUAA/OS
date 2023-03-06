@@ -16,6 +16,10 @@ case_div: casegen.c
 	gcc casegen.c -o casegen
 	./casegen div 100 > case_div
 case_all: case_add case_sub case_mul case_div
+	make case_add
+	make case_sub
+	make case_mul
+	make case_div
 	cat case_add case_sub case_mul case_div > case_all
 clean:
 	rm -f out calc casegen case_*
