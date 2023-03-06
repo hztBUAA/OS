@@ -5,6 +5,8 @@ if [ $# -gt 1]
 then
 	b=$1
 fi
+mkdir gen
+cd gen
 while [ $a -le $b ]
 do
 	touch $a.txt
