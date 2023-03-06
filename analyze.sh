@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if [ $# -eq 2 ];
+if [ $# -eq 2 ]
 then
     # Your code here. (1/4)
 	grep "WARN|ERROR" $1 > bug.txt
@@ -16,8 +16,13 @@ else
     ;;
     "--diff")
         # Your code here. (4/4)
-	diff -q  $1 $3 > /dev/null
-	
+	diff $1 $3
+	if [ $? -eq 0]
+	then
+		echo same
+	else
+		echo different
+	fi	
 
     ;;
     esac
