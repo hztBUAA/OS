@@ -18,4 +18,4 @@ case_div: casegen.c
 case_all: case_add case_sub case_mul case_div
 	cat case_add case_sub case_mul case_div > case_all
 clean:
-	rm out calc casegen case_*
+	rm -f out calc casegen case_*
