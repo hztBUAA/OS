@@ -1,0 +1,92 @@
+./1.txt: ---->   find ./ -name 1.txt
+
+grep    ----->         grep -r -n "blabla" ./dir > file
+当非目录文件中查找时 不输出路径
+反则输出
+P31-sed awk  -n:处理完文本内容后的输出源文件保持不变   -i:修改源文件
+
+TASK1:
+grep -r -n "hello OS lab0" ./dir > lab0_exam.c
+find -name lab0_x >> lab0_exam.c  追加
+sed -i "s/.\/dir/dir/g" lab0_exam.c  我的做法是直接替换，也相当于赌了一把sed指令里转义的写法  把文件中（-i）的./dir换成了dir  .不用转义 /需要用\来转义
+dir/dir0/lab0_0:1:hello OS lab0 hello
+dir/dir0/lab0_1:1:hello OS lab0_exam
+dir/dir1/lab0_x
+
+
+TASK2:
+clean
+
+
+Extra:
+当前目录下有个programA.c文件，写makefile，使得make命令生成programA，make clean清除programA。
+
+all: programA
+programA: programA.c
+        gcc $^ -o $@
+clean:
+        rm programA
+
+
+
+补全script.sh脚本，使得执行bash script.sh file，能够将file文件第8行作为programA的stdin，将结果覆盖输出到outputA文件中。
+
+注：file可以是任意的文件
+
+做法：
+
+script.sh文件内容：
+
+#!/bin/bash
+echo `sed -n '8p' $1 | ./programA` > outputA
+`` :反引号，获取执行命令的结果 
+:`sed -n '8p' $1 | ./programA`这个指令执行得到的结果输出到 outputA
+这里的$1是跋涉作为脚本时给的参数--》文件名
+
+
+
+单引号''剥夺了所有字符的特殊含义，单引号''内就变成了单纯的字符。双引号""则对于双引号""内的参数替换($)和命令替换(``)是个例外。
+
+
+
+反引号``是命令替换，命令替换是指Shell可以先执行``中的命令，将输出结果暂时保存，在适当的地方输出。语法:`command`
+
+[lucky@localhost ~]$ echo `pwd`
+/home/lucky
+
+
+
+
+
+
+
+
+sed -n '3p' my.txt
+2 # 输出 my.txt 的第三行
+3 sed '2d' my.txt
+4 # 删除 my.txt 文件的第二行
+5 sed '2,$d' my.txt
+6 # 删除 my.txt 文件的第二行到最后一行
+7 sed 's/str1/str2/g' my.txt
+8 # 在整行范围内把 str1 替换为 str2。
+9 # 如果没有 g 标记，则只有每行第一个匹配的 str1 被替换成 str2
+
+
+
+
+$ awk '$1>a {print $1,"this is a test"}' 1.txt
+hello1 this is a test
+hello2 this is a test
+hello3 this is a test
+hello4,heel,ellf this is a test
+
+
+
+ awk -Fe '$1>a {print$1"this is a test"}' 1.txt
+hthis is a test
+hthis is a test
+hthis is a test
+hthis is a test
+
+#!/bin/bash
+  2 sed -i "s/$2/$3/g" $1  此脚本接收三个参数 第一个为修改的文件名 第二个为待替换的字符串 第三个为替换后的字符串
