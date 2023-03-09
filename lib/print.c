@@ -15,11 +15,16 @@ void vprintfmt(fmt_callback_t out, void *data, const char *fmt, va_list ap) {
 	int neg_flag;  // output is negative
 	int ladjust;   // output is left-aligned
 	char padc;     // padding char
-
+	int prec;
 	for (;;) {
 		/* scan for the next '%' */
 		/* Exercise 1.4: Your code here. (1/8) */
-
+		if ( *fmt != '%')
+		{
+			out(data,fmt,1);
+			fmt++;
+			continue;	
+		}
 		/* flush the string found so far */
 		/* Exercise 1.4: Your code here. (2/8) */
 
@@ -28,17 +33,36 @@ void vprintfmt(fmt_callback_t out, void *data, const char *fmt, va_list ap) {
 
 		/* we found a '%' */
 		/* Exercise 1.4: Your code here. (4/8) */
-
+		fmt++;
+		long_flag = 0;
+		neg_flag = 0;
+		width = 0;
+		prec = 0;
+		ladjust = 0;
+		padc = ' ';
 		/* check format flag */
 		/* Exercise 1.4: Your code here. (5/8) */
-
+		
 		/* get width */
 		/* Exercise 1.4: Your code here. (6/8) */
 
 		/* check for long */
 		/* Exercise 1.4: Your code here. (7/8) */
-
+		if (*fmt == '-')
+			ladjust = 1, fmt++;
+		if (*fmt == '0')
+			padc = '0', fmt++;
+		while((*fmt)>='0'&&(*fmt)<='9')
+		{
+			width = 10*width + (*fmt)-'0';
+			fmt++;
+		}
+		if (*fmt == 'l')
+			long_flag = 1, fmt++;
 		neg_flag = 0;
+
+
+
 		switch (*fmt) {
 		case 'b':
 			if (long_flag) {
@@ -63,7 +87,9 @@ void vprintfmt(fmt_callback_t out, void *data, const char *fmt, va_list ap) {
 			 * others. (hint: 'neg_flag').
 			 */
 			/* Exercise 1.4: Your code here. (8/8) */
-
+			if (num < 0)
+				neg_flag = 1, num = -num;
+			print_num(out, data, num, 10, neg_flag, width, ladjust, padc, 0);
 			break;
 
 		case 'o':
