@@ -16,7 +16,7 @@ void vprintfmt(fmt_callback_t out, void *data, const char *fmt, va_list ap) {
 	int ladjust;   // output is left-aligned
 	char padc;     // padding char
 	int prec;
-	for (;;) {
+	for (;*fmt;) {
 		/* scan for the next '%' */
 		/* Exercise 1.4: Your code here. (1/8) */
 		if ( *fmt != '%')
@@ -49,22 +49,25 @@ void vprintfmt(fmt_callback_t out, void *data, const char *fmt, va_list ap) {
 		/* check for long */
 		/* Exercise 1.4: Your code here. (7/8) */
 		if (*fmt == '-')
-			ladjust = 1, fmt++;
-		if (*fmt == '0')
+			ladjust = 1, fmt++;/*
+			*左对齐 formatflag包括- 0
+			*/
+		if ((*fmt) == '0')
 			padc = '0', fmt++;
 		while((*fmt)>='0'&&(*fmt)<='9')
 		{
 			width = 10*width + (*fmt)-'0';
 			fmt++;
 		}
-		if (*fmt == 'l')
+		if ((*fmt) == 'l')
 			long_flag = 1, fmt++;
 		neg_flag = 0;
 
 
 
 		switch (*fmt) {
-		case 'b':
+		case 'b':/**
+			   无符号二进制*/
 			if (long_flag) {
 				num = va_arg(ap, long int);
 			} else {
@@ -146,7 +149,7 @@ void vprintfmt(fmt_callback_t out, void *data, const char *fmt, va_list ap) {
 
 		default:
 			/* output this char as it is */
-			out(data, fmt, 1);
+			out(data, fmt, 1);//out将fmt字符一字节输出到data地址的内存上
 		}
 		fmt++;
 	}
@@ -160,10 +163,10 @@ void print_char(fmt_callback_t out, void *data, char c, int length, int ladjust)
 		length = 1;
 	}
 	const char space = ' ';
-	if (ladjust) {
+	if (ladjust) {/*左对齐*/
 		out(data, &c, 1);
 		for (i = 1; i < length; i++) {
-			out(data, &space, 1);
+			out(data, &space, 1);/*out将space的值输出到data中以1字节*/
 		}
 	} else {
 		for (i = 0; i < length - 1; i++) {
@@ -172,7 +175,9 @@ void print_char(fmt_callback_t out, void *data, char c, int length, int ladjust)
 		out(data, &c, 1);
 	}
 }
-
+/**
+ *这里的length参数和上面vfmtprint参数的length不是一个意思 width
+ */
 void print_str(fmt_callback_t out, void *data, const char *s, int length, int ladjust) {
 	int i;
 	int len = 0;
