@@ -105,11 +105,12 @@ void page_init(void) {
 
 	/* Step 4: Mark the other memory as free. */
 	/* Exercise 2.3: Your code here. (4/4) */
-	for( i = size; i< npage ; i++)//npage 是初始化时detect出来的物理内存的总页数
+	for(int i = size; i< npage ; i++)//npage 是初始化时detect出来的物理内存的总页数
 	{
 		pages[i].pp_ref = 0;
 		LIST_INSERT_HEAD( &page_free_list,pages + i, pp_link);//这里的pp_link?   LIST_INSERT_HEAD的调用格式？(head,elm,field)
 	}
+	printk("page_init ok");
 	//LIST_REMOVE( pa2page(PADDR(freemem))      ,pp_link);//删除已经加入到空闲链表的页？ 其实这里加入到空闲链表的页不需要作删除操作，因为它们一开始也没有出现在链表中  
 }
 
@@ -132,13 +133,14 @@ int page_alloc(struct Page **new) {
 	/* Exercise 2.4: Your code here. (1/2) */
 	if(LIST_EMPTY(&page_free_list)) {
 		return -E_NO_MEM;
+
 	}
 	pp = LIST_FIRST(&page_free_list);
 	LIST_REMOVE(pp, pp_link);
 	/* Step 2: Initialize this page with zero.
 	 * Hint: use `memset`. */
 	/* Exercise 2.4: Your code here. (2/2) */
-	memset( page2pa(pp) ,0, BY2PG);//?
+	memset((void *)(page2kva(pp)) ,0, BY2PG);//?写成了2pa会导致当前物理内存指令全部变成nop  但还是有疑问？把虚拟地址对应的物理区域变成了0？
 	//pp_link is one page from the free_list ?
 	*new = pp;
 	return 0;
@@ -188,10 +190,10 @@ static int pgdir_walk(Pde *pgdir, u_long va, int create, Pte **ppte) {
 	int ret = 0;
 	if(!(*pgdir_entryp & PTE_V)) {
 		if(create) {
-			if((ret = page_alloc(&pp)) < 0) {
-				return ret;//这里要注意page_alloc的用法
+			if((ret = page_alloc(&pp)) < 0 )    {
+				return ret;
 			}	
-			*pgdir_entryp = page2pa(pp) | PTE_V |PTE_R;
+			*pgdir_entryp = page2pa(pp) | PTE_V |PTE_D;//为什么要标志脏位？
 			pp->pp_ref++;///这里是一级页目录表项对应的二级页表地址？也要必要时create？
 		}
 		else {
@@ -201,7 +203,8 @@ static int pgdir_walk(Pde *pgdir, u_long va, int create, Pte **ppte) {
 	}
 	/* Step 3: Assign the kernel virtual address of the page table entry to '*ppte'. */
 	/* Exercise 2.6: Your code here. (3/3) */
-	*ppte = (Pte*) KADDR(PTE_ADDR(*pgdir_entry))  + PTX(va) ;//这里的之所以要KADDR是因为 指针 得是虚拟空间上的   **
+	*ppte = (Pte*) KADDR(PTE_ADDR(*pgdir_entryp))  + PTX(va) ;//这里的之所以要KADDR是因为 指针 得是虚拟空间上的   **
+	printk("walk ok");
 	return 0;
 }
 
@@ -329,11 +332,9 @@ void physical_memory_manage_check(void) {
 	assert(page_alloc(&pp0) == 0);
 	assert(page_alloc(&pp1) == 0);
 	assert(page_alloc(&pp2) == 0);
-
 	assert(pp0);
 	assert(pp1 && pp1 != pp0);
 	assert(pp2 && pp2 != pp1 && pp2 != pp0);
-
 	// temporarily steal the rest of the free pages
 	fl = page_free_list;
 	// now this page_free list must be empty!!!!

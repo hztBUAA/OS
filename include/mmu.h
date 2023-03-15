@@ -1,3 +1,20 @@
+#ifndef _MMU_H_
+#define _MMU_H_
+
+#include <error.h>
+
+#define BY2PG 4096              // bytes to a page
+#define PDMAP (4 * 1024 * 1024) // bytes mapped by a page directory entry
+#define PGSHIFT 12
+#define PDSHIFT 22 // log2(PDMAP)
+#define PDX(va) ((((u_long)(va)) >> 22) & 0x03FF)
+#define PTX(va) ((((u_long)(va)) >> 12) & 0x03FF)
+#define PTE_ADDR(pte) ((u_long)(pte) & ~0xFFF)
+
+// Page number field of an address
+#define PPN(va) (((u_long)(va)) >> 12)
+#define VPN(va) (((u_long)(va)) >> 12)
+
 /* Page Table/Directory Entry flags */
 
 // Global bit. When the G bit in a TLB entry is set, that TLB entry will match solely on the VPN
