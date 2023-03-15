@@ -28,11 +28,11 @@ extern struct Page_list page_free_list;
 static inline u_long page2ppn(struct Page *pp) {
 	return pp - pages;
 }
-
+//整个内存划分为pages
 static inline u_long page2pa(struct Page *pp) {
 	return page2ppn(pp) << PGSHIFT;
 }
-
+//PGSHIFT is 4KB
 static inline struct Page *pa2page(u_long pa) {
 	if (PPN(pa) >= npage) {
 		panic("pa2page called with invalid pa: %x", pa);
@@ -43,7 +43,7 @@ static inline struct Page *pa2page(u_long pa) {
 static inline u_long page2kva(struct Page *pp) {
 	return KADDR(page2pa(pp));
 }
-
+//根据页控制块pp返回该用户进程下的对应虚拟页的虚拟地址（处于kseg0）只需pa的最高位置1
 static inline u_long va2pa(Pde *pgdir, u_long va) {
 	Pte *p;
 

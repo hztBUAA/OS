@@ -14,7 +14,7 @@ struct Page *pages;
 static u_long freemem;
 
 struct Page_list page_free_list; /* Free list of physical pages */
-
+//创建一个Page_list类型的page_free_list变量
 /* Overview:
  *   Read memory size from DEV_MP to initialize 'memsize' and calculate the corresponding 'npage'
  *   value.
@@ -25,7 +25,7 @@ void mips_detect_memory() {
 
 	/* Step 2: Calculate the corresponding 'npage' value. */
 	/* Exercise 2.1: Your code here. */
-
+	npage = memsize / (1024 * 4 );// one page : 4KB
 	printk("Memory size: %lu KiB, number of pages: %lu\n", memsize / 1024, npage);
 }
 
@@ -90,16 +90,27 @@ void page_init(void) {
 	/* Step 1: Initialize page_free_list. */
 	/* Hint: Use macro `LIST_INIT` defined in include/queue.h. */
 	/* Exercise 2.3: Your code here. (1/4) */
-
+	LIST_INIT(&page_free_list);//一定要加&号   认为page_free_list本身是一个链表项（头），函数接收的是指针  里面全部都是采用【head】->的用法
 	/* Step 2: Align `freemem` up to multiple of BY2PG. */
 	/* Exercise 2.3: Your code here. (2/4) */
-
+	ROUND(freemem,BY2PG);
 	/* Step 3: Mark all memory below `freemem` as used (set `pp_ref` to 1) */
 	/* Exercise 2.3: Your code here. (3/4) */
+	//memset?
+	//
+	int size = PADDR(freemem) / BY2PG;
+	for(int i = 0; i<size; i++) {
+		pages[i].pp_ref = 1;
+	}//pages是全局变量管理若干Page结构体
 
 	/* Step 4: Mark the other memory as free. */
 	/* Exercise 2.3: Your code here. (4/4) */
-
+	for( i = size; i< npage ; i++)//npage 是初始化时detect出来的物理内存的总页数
+	{
+		pages[i].pp_ref = 0;
+		LIST_INSERT_HEAD( &page_free_list,pages + i, pp_link);//这里的pp_link?   LIST_INSERT_HEAD的调用格式？(head,elm,field)
+	}
+	//LIST_REMOVE( pa2page(PADDR(freemem))      ,pp_link);//删除已经加入到空闲链表的页？ 其实这里加入到空闲链表的页不需要作删除操作，因为它们一开始也没有出现在链表中  
 }
 
 /* Overview:
@@ -119,13 +130,16 @@ int page_alloc(struct Page **new) {
 	/* Step 1: Get a page from free memory. If fails, return the error code.*/
 	struct Page *pp;
 	/* Exercise 2.4: Your code here. (1/2) */
-
+	if(LIST_EMPTY(&page_free_list)) {
+		return -E_NO_MEM;
+	}
+	pp = LIST_FIRST(&page_free_list);
 	LIST_REMOVE(pp, pp_link);
-
 	/* Step 2: Initialize this page with zero.
 	 * Hint: use `memset`. */
 	/* Exercise 2.4: Your code here. (2/2) */
-
+	memset( page2pa(pp) ,0, BY2PG);//?
+	//pp_link is one page from the free_list ?
 	*new = pp;
 	return 0;
 }
@@ -140,7 +154,7 @@ void page_free(struct Page *pp) {
 	assert(pp->pp_ref == 0);
 	/* Just insert it into 'page_free_list'. */
 	/* Exercise 2.5: Your code here. */
-
+	LIST_INSERT_HEAD(&page_free_list,pp,pp_link);//maybe not in the head?
 }
 
 /* Overview:
@@ -165,16 +179,29 @@ static int pgdir_walk(Pde *pgdir, u_long va, int create, Pte **ppte) {
 
 	/* Step 1: Get the corresponding page directory entry. */
 	/* Exercise 2.6: Your code here. (1/3) */
-
+	pgdir_entryp = pgdir + PDX(va);//页目录表的正确页表项
 	/* Step 2: If the corresponding page table is not existent (valid) and parameter `create`
 	 * is set, create one. Set the permission bits 'PTE_D | PTE_V' for this new page in the
 	 * page directory.
 	 * If failed to allocate a new page (out of memory), return the error. */
 	/* Exercise 2.6: Your code here. (2/3) */
-
+	int ret = 0;
+	if(!(*pgdir_entryp & PTE_V)) {
+		if(create) {
+			if((ret = page_alloc(&pp)) < 0) {
+				return ret;//这里要注意page_alloc的用法
+			}	
+			*pgdir_entryp = page2pa(pp) | PTE_V |PTE_R;
+			pp->pp_ref++;///这里是一级页目录表项对应的二级页表地址？也要必要时create？
+		}
+		else {
+			*ppte = 0;
+			return 0;//这里不create 而一级页目录对应的页表项又无效，直接 *ppte=0的意义？
+		}
+	}
 	/* Step 3: Assign the kernel virtual address of the page table entry to '*ppte'. */
 	/* Exercise 2.6: Your code here. (3/3) */
-
+	*ppte = (Pte*) KADDR(PTE_ADDR(*pgdir_entry))  + PTX(va) ;//这里的之所以要KADDR是因为 指针 得是虚拟空间上的   **
 	return 0;
 }
 
@@ -196,10 +223,10 @@ int page_insert(Pde *pgdir, u_int asid, struct Page *pp, u_long va, u_int perm) 
 	/* Step 1: Get corresponding page table entry. */
 	pgdir_walk(pgdir, va, 0, &pte);
 
-	if (pte && (*pte & PTE_V)) {
-		if (pa2page(*pte) != pp) {
+	if (pte && (*pte & PTE_V)) {//pte表示这个页表项存在 （）表示这个页表项的有效
+		if (pa2page(*pte) != pp) {//页表项显示的物理地址（即通过walk函数查找映射物理页）对应的物理页
 			page_remove(pgdir, asid, va);
-		} else {
+		} else {//?疑惑   为什么如果对应了就是这页物理地址时还需要操作 解答 原来是删除tlb中的项，这里为什么并没有去把tlb的表项也进行更新呢？
 			tlb_invalidate(asid, va);
 			*pte = page2pa(pp) | perm | PTE_V;
 			return 0;
@@ -208,15 +235,16 @@ int page_insert(Pde *pgdir, u_int asid, struct Page *pp, u_long va, u_int perm) 
 
 	/* Step 2: Flush TLB with 'tlb_invalidate'. */
 	/* Exercise 2.7: Your code here. (1/3) */
-
+	tlb_invalidate(asid,va);
 	/* Step 3: Re-get or create the page table entry. */
 	/* If failed to create, return the error. */
 	/* Exercise 2.7: Your code here. (2/3) */
-
+	int ret = 0;
+	if((ret=pgdir_walk(pgdir,va,1,&pte))<0) return ret;
 	/* Step 4: Insert the page to the page table entry with 'perm | PTE_V' and increase its
 	 * 'pp_ref'. */
 	/* Exercise 2.7: Your code here. (3/3) */
-
+	*pte = page2pa(pp) | perm | PTE_V;
 	return 0;
 }
 
@@ -436,6 +464,11 @@ void page_check(void) {
 
 	// insert pp1 at BY2PG (replacing pp2)
 	assert(page_insert(boot_pgdir, 0, pp1, BY2PG, 0) == 0);
+
+// Page number field of an address
+#define PPN(va) (((u_long)(va)) >> 12)
+#define VPN(va) (((u_long)(va)) >> 12)
+
 
 	// should have pp1 at both 0 and BY2PG, pp2 nowhere, ...
 	assert(va2pa(boot_pgdir, 0x0) == page2pa(pp1));

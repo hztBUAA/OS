@@ -4,7 +4,7 @@
 /*
  * This file defines three types of data structures: lists, tail queues,
  * and circular queues.
- *
+ *链表：  traverse：遍历
  * A list is headed by a single forward pointer(or an array of forward
  * pointers for a hash table header). The elements are doubly linked
  * so that an arbitrary element can be removed without a need to
@@ -12,6 +12,7 @@
  * or after an existing element or at the head of the list. A list
  * may only be traversed in the forward direction.
  *
+ * 单向链表 但是尾部多加了一个指针？
  * A tail queue is headed by a pair of pointers, one to the head of the
  * list and the other to the tail of the list. The elements are doubly
  * linked so that an arbitrary element can be removed without a need to
@@ -19,6 +20,7 @@
  * after an existing element, at the head of the list, or at the end of
  * the list. A tail queue may only be traversed in the forward direction.
  *
+ *循环链表
  * A circle queue is headed by a pair of pointers, one to the head of the
  * list and the other to the tail of the list. The elements are doubly
  * linked so that an arbitrary element can be removed without a need to
@@ -45,13 +47,13 @@
  *
  * where HEADNAME is the name of the structure to be defined, and TYPE is the type of the
  * elements to be linked into the list.
+ *这下面的type使用了泛型的思想
  */
 #define LIST_HEAD(name, type)                                                                      \
 	struct name {                                                                              \
-		struct type *lh_first; /* first element */                                         \
+		struct type *lh_first;      							   \
 	}
-
-/*
+/*   格式问题
  * Set a list head variable to LIST_HEAD_INITIALIZER(head)
  * to reset it to the empty list.
  */
@@ -85,7 +87,7 @@
  * Return the first element in the list named "head".
  */
 #define LIST_FIRST(head) ((head)->lh_first)
-
+//lh element  le pointer
 /*
  * Iterate over the elements in the list named "head".
  * During the loop, assign the list elements to the variable "var"
@@ -102,7 +104,8 @@
 		LIST_FIRST((head)) = NULL;                                                         \
 	} while (0)
 
-/*
+/***************************************************************************************************
+ * ***********************************************************************************************
  * Insert the element 'elm' *after* 'listelm' which is already in the list. The 'field'
  * name is the link element as above.
  *
@@ -114,7 +117,12 @@
  */
 #define LIST_INSERT_AFTER(listelm, elm, field)                                                     \
 	/* Exercise 2.2: Your code here. */  \
-
+	do {    \
+		(elm)->field.le_next = (listelm)->field.le_next;  \
+		&((listelm)->field.le_next)  = (elm)->field.le_next;  \
+		(listelm)->field.le_next = elm;    \
+		(elm)->field.le_prev = &((listelm)->field.le_next);  \
+	} while(0)
 /*
  * Insert the element "elm" *before* the element "listelm" which is
  * already in the list.  The "field" name is the link element
