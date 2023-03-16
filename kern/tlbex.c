@@ -46,6 +46,7 @@ Pte _do_tlb_refill(u_long va, u_int asid) {
 		if(!page_lookup(cur_pgdir,va,&pte) ) {
 			passive_alloc(va,cur_pgdir,asid);
 		}
+		//page_lookup(cur_pgdir,va,&pte);之所以用循环 是因为为了确保pte是分配到的二级页表项
 		else break;
 	}
 	return *pte;
