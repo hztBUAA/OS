@@ -188,23 +188,22 @@ static int pgdir_walk(Pde *pgdir, u_long va, int create, Pte **ppte) {
 	 * If failed to allocate a new page (out of memory), return the error. */
 	/* Exercise 2.6: Your code here. (2/3) */
 	int ret = 0;
-	if(!(*pgdir_entryp & PTE_V)) {
+	if(!(*pgdir_entryp & PTE_V)) {//这里要不要先判断指针的是否是有效的
 		if(create) {
 			if((ret = page_alloc(&pp)) < 0 )    {
 				return ret;
 			}	
 			*pgdir_entryp = page2pa(pp) | PTE_V |PTE_D;//为什么要标志脏位？
-			pp->pp_ref++;///这里是一级页目录表项对应的二级页表地址？也要必要时create？
+			pp->pp_ref++;///这里是一级页目录表项对应的二级页表地址？也要必要时create？yes 表示这张刚刚page_alloc出来的物理页用来存放二级页表了
 		}
 		else {
-			*ppte = 0;
+			*ppte = 0;//as the book said set to 0
 			return 0;//这里不create 而一级页目录对应的页表项又无效，直接 *ppte=0的意义？
 		}
 	}
 	/* Step 3: Assign the kernel virtual address of the page table entry to '*ppte'. */
 	/* Exercise 2.6: Your code here. (3/3) */
-	*ppte = (Pte*) KADDR(PTE_ADDR(*pgdir_entryp))  + PTX(va) ;//这里的之所以要KADDR是因为 指针 得是虚拟空间上的   **
-	printk("walk ok");
+	*ppte = (Pte*) KADDR(PTE_ADDR(*pgdir_entryp))  + PTX(va) ;//这里的之所以要KADDR是因为 指针 得是虚拟空间上的   ** PTE_ADDR是为了方便从一级页表项中（*pgdir_entryp中得到二级页表的地址 即取出前20位）再加上va本身对应的二级页表偏移量PTX(va) 此时这个二级页表项也许并不有效 因为可能还没映射？yes 所以才需要walk和map函数的结合使用 walk用来确定二级页表结构中的二级页表项是否存在(通过对一级页表项的值的有效性判定) map才是将这个二级页表项的内容变为映射物理页的地址（）此时这个二级页表项的值也是物理页的一个虚拟地址？ no 应该是里面前20位包含了PFN 可以用page页控制块和相关函数来找到物理页  啊 其实知道了物理页号 得到物理地址也只需向左位移12位再加页内偏移就好了 但这个得到的地址是真正的物理地址？
 	return 0;
 }
 
@@ -238,7 +237,7 @@ int page_insert(Pde *pgdir, u_int asid, struct Page *pp, u_long va, u_int perm) 
 
 	/* Step 2: Flush TLB with 'tlb_invalidate'. */
 	/* Exercise 2.7: Your code here. (1/3) */
-	tlb_invalidate(asid,va);
+	tlb_invalidate(asid,va);//为什么这个va本身没有对应的映射还需要flush？
 	/* Step 3: Re-get or create the page table entry. */
 	/* If failed to create, return the error. */
 	/* Exercise 2.7: Your code here. (2/3) */
@@ -248,6 +247,7 @@ int page_insert(Pde *pgdir, u_int asid, struct Page *pp, u_long va, u_int perm) 
 	 * 'pp_ref'. */
 	/* Exercise 2.7: Your code here. (3/3) */
 	*pte = page2pa(pp) | perm | PTE_V;
+	pp->pp_ref++;
 	return 0;
 }
 
