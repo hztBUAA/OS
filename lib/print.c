@@ -14,9 +14,9 @@ void vprintfmt(fmt_callback_t out, void *data, const char *fmt, va_list ap) {
 	int long_flag; // output is long (rather than int)
 	int neg_flag;  // output is negative
 	int ladjust;   // output is left-aligned
-	char padc;     // padding char
+	char padc;     // padding char 默认为空格  即用来补位的字符
 	int prec;
-	for (;*fmt;) {
+	for (;*fmt;) {//第一次上交时这里的第二个参数没写 导致错误？仔细分析了一下 确实  会导致输出的数据减少  但还是要会debug
 		/* scan for the next '%' */
 		/* Exercise 1.4: Your code here. (1/8) */
 		if ( *fmt != '%')
@@ -52,20 +52,51 @@ void vprintfmt(fmt_callback_t out, void *data, const char *fmt, va_list ap) {
 			ladjust = 1, fmt++;/*
 			*左对齐 formatflag包括- 0
 			*/
-		if ((*fmt) == '0')
+		if ((*fmt) == '0')//这里的0表示占位符变成0
 			padc = '0', fmt++;
 		while((*fmt)>='0'&&(*fmt)<='9')
-		{
+		{//表示输出的宽度
 			width = 10*width + (*fmt)-'0';
 			fmt++;
 		}
-		if ((*fmt) == 'l')
+		if ((*fmt) == 'l')//表示是long long 类型
 			long_flag = 1, fmt++;
 		neg_flag = 0;
 
 
-
+//*****************************开始确定具体类型********************
 		switch (*fmt) {
+			case 'R':
+				if(long_flag){
+					num = va_arg(ap,long int);
+
+				}
+				else{
+					num = va_arg(ap,int);
+				}
+				if (num < 0)
+	                                 neg_flag = 1, num = -num;
+				char c = '(';
+				out(data,&c,1);
+				print_num(out,data,num,10,neg_flag,width,ladjust,padc,0);
+				char d = ',';
+				out(data,&d,1);
+				
+				if(long_flag){
+                                         num = va_arg(ap,long int);
+                                  }
+                                 else{
+                                         num = va_arg(ap,int);
+                                 }
+				 if(num <0)
+					 neg_flag = 1,num = -num;
+				 print_num(out,data,num,10,neg_flag,width,ladjust,padc,0);
+				 char e = ')';
+				 out(data,&e,1);
+				 
+				 
+				 break;
+			
 		case 'b':/**
 			   无符号二进制*/
 			if (long_flag) {
@@ -73,8 +104,9 @@ void vprintfmt(fmt_callback_t out, void *data, const char *fmt, va_list ap) {
 			} else {
 				num = va_arg(ap, int);
 			}
+			//print_num(out,data,[specified var],radix,negflag,width,ladjust,padc,upcase(表示输出数字十六进制中的字母时是否大小写));
 			print_num(out, data, num, 2, 0, width, ladjust, padc, 0);
-			break;
+			break;//question：这里break以后还会再次不断运行这个vfmtprint函数？毕竟现在break已经退出了这个for？answer：脑袋犯病了 这个是只退出switch
 
 		case 'd':
 		case 'D':

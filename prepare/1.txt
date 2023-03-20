@@ -1,0 +1,330 @@
+exam
+lab1课下，只需将section addr输出，课上，要将program header里的offset和align输出。
+
+Extra
+题目
+我们知道，数据的存储分为大小端，并且elf header中的e_ident[5]指明了文件中的数据编码格式，你也可以在ELF手册中找到相关的信息。
+
+现在，要你修改readelf.c文件，
+
+当其解析大端存储的elf格式文件时，输出每个section的addr
+
+当其解析小端存储的文件时，输出每个program的filesz和memsz
+
+gexmul文件夹内的vmlinux文件以大端存储，readelf文件夹内testELF文件以小端存储，它们可以用于测试你改写的readelf文件的正确性。
+
+解决
+难点有两个，一是大端存储怎么转换为小端存储，二是要把哪些数据从大端转换成小端。
+
+先简单讲下大小端，大端0x12_34_56_78，对应小端就是0x78_56_34_12，将四个字节reverse即可。
+
+这一部分可以看往届学长的实现
+
+对于难点一：
+
+#define REVERSE_32(n_n) \
+	((((n_n)&0xff) << 24) | (((n_n)&0xff00) << 8) | (((n_n) >> 8) & 0xff00) | (((n_n) >> 24) & 0xff))
+
+#define REVERSE_16(n_n) \
+	((((n_n)&0xff) << 8) | (((n_n) >> 8) & 0xff))
+就是拿到一个32位的integer，通过位运算，取得想要的字节，再左右移动，使得顺序改变即可。
+
+或是如此:
+
+uint32_t rvs_32(uint32_t* ptr) {
+        u_char char1, char2, char3, char4;
+        char1 = *((u_char*) ptr);
+        char2 = *((u_char*) ptr + 1);
+        char3 = *((u_char*) ptr + 2);
+        char4 = *((u_char*) ptr + 3);
+        return ((uint32_t) char1 << 24) + ((uint32_t) char2 << 16) + ((uint32_t) char3 << 8) + ((uint32_t) char4);
+}
+
+uint16_t rvs_16(uint16_t* ptr) {
+        u_char char1, char2;
+        char1 = *((u_char*) ptr);
+        char2 = *((u_char*) ptr + 1);
+        // char3 = *((U_char*) ptr + 2);
+        // cahr4 = *((u_char*) ptr + 3);
+        return ((uint16_t) char1 << 8) + ((uint16_t) char2);
+}
+先给个指向32bit的指针，把指针给强转成指向8bit，然后把这8bit一个一个通过*运算符拿出来，最后把8bit强转位32bit，拼接好就行。
+
+第二个难点——哪些数据需要反转
+
+或许有人说，输出地址，那直接把地址反转就好了，其实不然。
+
+首先要通过offset拿到program header table的地址时，offset需要翻转。
+
+遍历每个segement时,需要count和size，这个也需要翻转。
+
+所以，对于本次Extra，有四处需要翻转。
+
+
+
+
+lab1-2
+这次上机，真是见证了人与人之间的参商——有的人Extra拿满分，有的人exam拿0分。
+
+这次上机，考察了很多c语言的基础知识，对高工的同学极为不利，几乎团灭。
+
+俗话说，前人栽树，后人乘凉，现在看来，并非如此。经历了这次上机，感觉OS有年年变难的趋势。
+
+我也只做了exam，，对本菜鸟来说，真是太难了。
+
+建议
+早点到教室，开机要比较久的时间（吐槽垃圾电脑），连chrome打开都要将近一分钟。不禁感慨，苍天啊，掉块陨石把机房砸了吧，利国利民啊！
+
+我个人会在桌面上新建一个txt，用来存放：
+
+常用的命令，如gxemul -E testmips -C R3000 -M 64 vmlinux和git push ...
+虚拟机上编译报的错，一是方便查看哪错了，二是lab挂了可以粘贴到虚拟机的文件带回课下研究
+我还会同时打开dev c++，好处有两个：
+
+把自己的一些代码粘贴进去，方便自己看
+写一些超级小的程序，一般不超过20行，测试下自己的思路
+对了，有的同学会把gxemul -E testmips -C R3000 -M 64 ./gxemul/vmlinux、git add .和git commit -a -m "sth"直接写进makefile，非常nice。
+
+exam
+题目
+我们已经补全了print的代码，现在有俩结构体：
+
+struct s1 {
+	int a;
+	char b;
+	char c;
+	int d;
+};
+
+struct s2 {
+	int size;
+	int c[c_size];
+};
+说明：
+
+struct s2里，c_size保证和size相等
+给printf传入的相关参数是struct的地址
+printf("%$1T", addr_of_s1)，输出第一个结构体中的内容，格式如{1,"a","b",2}
+
+printf("%$2T", addr_of_s2)，输出第二个结构体中的内容，格式如{4,3,1,2,4}。也就是说，size和数组里面的值要一起输出。
+
+好了，开始做吧😄
+
+解答
+在自己的print.c里面，用typedef声明这几个结构体。
+
+typedef struct {
+        int a;
+        char b;
+        char c;
+        int d;
+} s1;
+
+typedef struct {
+        int size;
+        int c[10000];
+} s2;
+为什么要用typedef，原因很简单，struct的语法忘得差不多了，而readelf文件夹下的types.h里面的结构体就是这么声明的，这样一来避免后面定义指针的不便，二来有个参考。
+
+然后声明几个和struct相关的指针和变量，前者用来接收地址。
+
+int type;
+s1* a_s1;
+s2* a_s2;
+int var_for; // for 循环里面的参数
+int size;
+int* arr_int; // type in struct s2
+通过$判断要输出结构体然后再获取type的代码我就不写了，这个比较简单。
+
+最最重要的就是那个case里，真可谓又臭又长。
+
+首先，用指针接受参数，顺便输出'{'：
+
+case 'T':
+        if (type == 1) {
+                a_s1 = (s1*)va_arg(ap, s1*); // 保险起见，做了强制转换
+        } else {
+                a_s2 = (s2*)va_arg(ap, s2*);
+        }
+        // output the '{'
+        length = PrintChar(buf, '{', 1, 0);
+        OUTPUT(arg, buf, length);
+如果type == 1，逐个接受参数：
+
+if (type == 1) {
+        // output int a, char b, char c, int d;
+                int a = a_s1->a;
+                char b = a_s1->b;
+                char c = a_s1->c;
+                int d = a_s1->d;
+然后逐个输出abcd，注意格式：
+
+// print int a;
+negFlag = 0;
+if (a < 0) {
+        a = -a;
+        negFlag = 1;
+}
+length = PrintNum(buf, a, 10, negFlag, width, ladjust, padc, 0);
+OUTPUT(arg, buf, length);
+
+// print ','
+length = PrintChar(buf, ',', 1, 0);
+OUTPUT(arg, buf, length);
+
+// print char b
+length = PrintChar(buf, b, width, ladjust);
+OUTPUT(arg, buf, length);
+
+// print ','
+length = PrintChar(buf, ',', 1, 0);
+OUTPUT(arg, buf, length);
+
+// print char c
+length = PrintChar(buf, c, width, ladjust);
+OUTPUT(arg, buf, length);
+
+// print ','
+length = PrintChar(buf, ',', 1, 0);
+OUTPUT(arg, buf, length);
+
+// print int d
+negFlag = 0;
+if (d < 0) {
+        d = -d;
+        negFlag = 1;
+}
+length = PrintNum(buf, d, 10, negFlag, width, ladjust, padc, 0);
+OUTPUT(arg, buf, length);
+很遗憾没有排版，不过模仿教程中的语气，
+
+想必聪明的你已经明白我想说什么了吧~❤️
+
+如果type != 1，输出size和数组：
+
+else {
+    size = a_s2->size; // 拿到size
+    arr_int = a_s2->c; // 拿到数组
+    for (var_for = 0; var_for < size; var_for++) { // var_for 已经预先定义好了，为0
+            int x = arr_int[var_for];
+            negFlag = 0;
+            if (x < 0) {
+                    x = -x;
+                    negFlag = 1;
+            }
+            length = PrintNum(buf, x, 10, negFlag, width, ladjust, padc, 0);
+            OUTPUT(arg, buf, length);
+
+            if (var_for != size-1) {
+                    length = PrintChar(buf, ',', 1, 0);
+                    OUTPUT(arg, buf, length);
+            }
+
+    }
+}
+其实上面是不对的。因为没有输出size，这也是我de了半天空气bug的原因之一。
+
+为啥不修改呢？因为答案不能全说出来，不然那样就没意思了，呵呵。
+
+最后别忘了输出}以及break
+
+// print '}'
+length = PrintChar(buf, '}', 1, 0);
+OUTPUT(arg, buf, length);
+break;
+测试
+测试比较简单，在init目录下的init.c文件中，声明struct，初始化后输出就行。
+
+typedef struct {
+        int a;
+        char b;
+        char c;
+        int d;
+} s1;
+
+typedef struct {
+        int size;
+        int c[100];
+} s2;
+
+
+void mips_init()
+{
+        printf("init.c:\tmips_init() is called\n");
+
+        s2 s = {3, {1,2,3}};
+        printf("%$2T", &s);
+        printf("\n");
+Extra
+没做，但是可以告诉同学们，
+
+要写汇编，写函数，所以要熟悉寄存器的使用约定
+要从c代码去调用自己写的汇编函数
+把这个任务交给当时计组的自己，应该不难，可以，大家已经不是“从前那个少年”😕
+可以看这位大佬写的博客。
+
+总结
+很多人都挂了，我运气好在及格的边缘徘徊，感觉就是吔屎了。
+
+讲下自己的刺激体验吧，以及一些坑点。
+
+struct的定义和初始化
+其实我是不会struct的定义的，当场学习了readelf文件夹下的types.h，学会了定义。
+
+然后就是如何给一个struct赋值，简直懵逼了，我鼓起勇气直接问助教哥哥struct怎么初始化，感谢nice的助教哥哥。
+
+附一个初始化实例：
+
+typedef struct {
+	int a;
+	int b;
+} s2;
+
+s2 s = {1, 2};
+问的时候，我觉得助教一定被我的无知折服了😄，如果没有，我已经被自己的无知折服了。
+
+struct获取成员变量
+时隔一年有余，早就忘记了通过.和->获取struct中成员变量的区别了。
+
+现在告诉那些忘记了的同学，struct.var和struct_pointer->var。
+
+怪不得我在devc++里面“温习”struct的使用时，要用.来获取元素值，而在print.c里，我最后用->获取元素的值。我以为二者用法是相同的，但是struct_pointer.var编译会报错，提交的时候误打误撞写对了。
+
+附上一个样例：
+
+#include<stdio.h>
+
+typedef struct {
+	int size;
+	int c[100];
+} s2;
+
+int main() {
+	s2 s= {1, {1, 2, 3}};
+	printf("%d\n", s.c[2]);
+	s2* s_ptr = &s;
+	printf("%d\n", s_ptr->size);
+	return 0;
+}
+学习struct的初始化，有助于我们修改init.c，测试自己的程序，甚至猜一猜自己的程序错在哪里，不过调试是不存在的。
+
+下main这种初始化方式是错误的：
+
+#include<stdio.h>
+
+typedef struct {
+	int size;
+	int *c; // 注意这里，声明成了一个指针而不是数组
+} s2;
+
+int main() {
+	s2 s= {1, {1, 2, 3}}; // 将无法正确接受参数
+	printf("%d\n", s.c[2]);
+	s2* s_ptr = &s;
+	printf("%d\n", s_ptr->size);
+	return 0;
+}
+诡异的是，这样写，可以编译通过，在虚拟机上跑，会输出一些奇怪的数，这也是我在本地测试时犯下的第二个错误。
+
+byebye
+大家可以看下17级学长的exam，当时是让大家修改print，支持数组的输出。

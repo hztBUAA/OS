@@ -1,0 +1,207 @@
+/* This is a simplefied ELF reader.
+ * You can contact me if you find any bugs.
+ *
+ * Luming Wang<wlm199558@126.com>
+ */
+
+#include "kerelf.h"
+#include "types.h"
+#include <stdio.h>
+/* Overview:
+ *   Check whether it is a ELF file.
+ *
+ * Pre-Condition:
+ *   binary must longer than 4 byte.
+ *
+ * Post-Condition:
+ *   Return 0 if `binary` isn't an elf. Otherwise
+ * return 1.
+ */
+int is_elf_format(u_char *binary)
+{
+        Elf32_Ehdr *ehdr = (Elf32_Ehdr *)binary;
+        if (ehdr->e_ident[EI_MAG0] == ELFMAG0 &&
+            ehdr->e_ident[EI_MAG1] == ELFMAG1 &&
+            ehdr->e_ident[EI_MAG2] == ELFMAG2 &&
+            ehdr->e_ident[EI_MAG3] == ELFMAG3)
+        {
+                return 1;
+        }
+
+        return 0;
+}
+
+/* Overview:
+ *   read an elf format binary file. get ELF's information
+ *
+ * Pre-Condition:
+ *   `binary` can't be NULL and `size` is the size of binary.
+ *
+ * Post-Condition:
+ *   Return 0 if success. Otherwise return < 0.
+ *   If success, output address of every section in ELF.
+ */
+
+/*
+    Exercise 1.2. Please complete func "readelf".
+*/
+
+#define align (1LL << 12)
+int readelf(u_char *binary, int size)
+{
+    Elf32_Ehdr *ehdr = (Elf32_Ehdr *)binary;
+
+    int Nr;
+
+    Elf32_Phdr *phdr1 = NULL, *phdr2 = NULL, *phdr = NULL;
+
+    u_char *ptr_ph_table = NULL;
+    Elf32_Half ph_entry_count;
+    Elf32_Half ph_entry_size;
+
+    // check whether `binary` is a ELF file.
+    if (size < 4 || !is_elf_format(binary))
+    {
+            printf("not a standard elf format\n");
+            return 0;
+    }
+
+    // get section table addr, section header number and section header size.
+    ptr_ph_table = binary + ehdr->e_phoff;
+    ph_entry_count = ehdr->e_phnum;
+    ph_entry_size = ehdr->e_phentsize;
+
+    // for each section header, output section number and section addr.
+    // hint: section number starts at 0.
+    
+    int flag = 0;
+    for (Nr = 1; Nr < ph_entry_count; Nr++)
+    {
+    	phdr1 = ((Elf32_Phdr *)(ptr_ph_table + (Nr - 1) * ph_entry_size));
+    	phdr2 = ((Elf32_Phdr *)(ptr_ph_table + Nr * ph_entry_size));
+    	long unsigned int r1 = phdr1->p_vaddr + phdr1->p_memsz, l2 = phdr2->p_vaddr;
+    	if (ROUNDDOWN(r1, align) == ROUNDDOWN(l2, align))
+		{
+			printf ("Overlay at page va : 0x%x\n", ROUNDDOWN(l2, align));
+			if(l2 < r1)
+				printf ("Conflict at page va : 0x%x\n", ROUNDDOWN(l2, align));
+			return 0;
+		}
+	}
+    for (Nr = 0; Nr < ph_entry_count; Nr++)
+	{
+		phdr = ((Elf32_Phdr *)(ptr_ph_table + Nr * ph_entry_size));
+    	printf("%d:0x%x,0x%x\n", Nr, phdr->p_filesz, phdr->p_memsz);
+	}
+    return 0;
+}
+
+
+
+
+
+//******************2019年的 关于根据elf文件的大小端Data形式进行解析
+/* This is a simplefied ELF reader.
+ * You can contact me if you find any bugs.
+ *
+ * Luming Wang<wlm199558@126.com>
+ */
+
+#include "kerelf.h"
+#include <stdio.h>
+/* Overview:
+ *   Check whether it is a ELF file.
+ *
+ * Pre-Condition:
+ *   binary must longer than 4 byte.
+ *
+ * Post-Condition:
+ *   Return 0 if `binary` isn't an elf. Otherwise
+ * return 1.
+ */
+int is_elf_format(u_char *binary)
+{
+        Elf32_Ehdr *ehdr = (Elf32_Ehdr *)binary;
+        if (ehdr->e_ident[EI_MAG0] == ELFMAG0 &&
+                ehdr->e_ident[EI_MAG1] == ELFMAG1 &&
+                ehdr->e_ident[EI_MAG2] == ELFMAG2 &&
+                ehdr->e_ident[EI_MAG3] == ELFMAG3) {
+                return 1;
+        }
+
+        return 0;
+}
+
+/* Overview:
+ *   read an elf format binary file. get ELF's information
+ *
+ * Pre-Condition:
+ *   `binary` can't be NULL and `size` is the size of binary.
+ *
+ * Post-Condition:
+ *   Return 0 if success. Otherwise return < 0.
+ *   If success, output address of every section in ELF.
+ */
+
+#ifndef EI_DATA
+#define EI_DATA 5
+#endif
+//对32位数进行大小端的转换
+#define REVERSE_32(n_n) \               
+( (((n_n) & 0xff) << 24) | (((n_n) & 0xff00) << 8) | (((n_n)  >> 8) & 0xff00) | (((n_n) >> 24) & 0xff) )
+
+//对16位数进行大小端的转换
+#define REVERSE_16(n_n) \
+( (((n_n) & 0xff) << 8) | (((n_n)  >> 8) & 0xff) )
+
+int readelf(u_char *binary, int size)
+{
+        Elf32_Ehdr *ehdr = (Elf32_Ehdr *)binary;
+
+        int Nr;
+
+        Elf32_Shdr *shdr = NULL;
+
+        u_char *ptr_sh_table = NULL;
+        Elf32_Half sh_entry_count;
+        Elf32_Half sh_entry_size;
+
+
+        // check whether `binary` is a ELF file.
+        if (size < 4 || !is_elf_format(binary)) {
+                printf("not a standard elf format\n");
+                return -1;
+        }
+
+		char elf_Data = ehdr -> e_ident[EI_DATA];
+
+		if (elf_Data == 1)
+		{
+			// get section table addr, section header number and section header size.
+			ptr_sh_table = binary + ehdr -> e_shoff;
+			sh_entry_count = ehdr -> e_shnum;
+			sh_entry_size = ehdr -> e_shentsize;
+			// for each section header, output section number and section addr.
+			for (Nr = 0; Nr < sh_entry_count; Nr++) {
+				shdr = (Elf32_Shdr *)(ptr_sh_table + Nr * sh_entry_size);
+				//明确：sh_addr是当前节头表项对应的节section的地址，不是指这个节头表项的地址，因此这个addr是为方便具体取出节的数据
+				//而sh_offset是这个节头表项关于elf文件头的偏移量，即所处位置到elf文件头的距离
+				printf("%d:0x%x\n", Nr, shdr->sh_addr);
+			}
+		}
+		else
+		{
+			// get section table addr, section header number and section header size.
+			ptr_sh_table = binary + REVERSE_32(ehdr -> e_shoff);
+			sh_entry_count = REVERSE_16(ehdr -> e_shnum);
+			sh_entry_size = REVERSE_16(ehdr -> e_shentsize);
+			// for each section header, output section number and section addr.
+			for (Nr = 0; Nr < sh_entry_count; Nr++) {
+				shdr = (Elf32_Shdr *)(ptr_sh_table + Nr * sh_entry_size);
+				printf("%d:0x%x\n", Nr, REVERSE_32(shdr->sh_addr));
+			}
+		}
+
+		return 0;
+}
+
