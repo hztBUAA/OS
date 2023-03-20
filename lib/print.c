@@ -81,7 +81,7 @@ void vprintfmt(fmt_callback_t out, void *data, const char *fmt, va_list ap) {
 				print_num(out,data,num,10,neg_flag,width,ladjust,padc,0);
 				char d = ',';
 				out(data,&d,1);
-				
+				neg_flag = 0;
 				if(long_flag){
                                          num = va_arg(ap,long int);
                                   }
@@ -90,6 +90,8 @@ void vprintfmt(fmt_callback_t out, void *data, const char *fmt, va_list ap) {
                                  }
 				 if(num <0)
 					 neg_flag = 1,num = -num;
+				 else
+					 neg_flag = 0,num = num;
 				 print_num(out,data,num,10,neg_flag,width,ladjust,padc,0);
 				 char e = ')';
 				 out(data,&e,1);
