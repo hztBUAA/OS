@@ -2,7 +2,7 @@
 #define _STRING_H_
 
 #include <types.h>
-
+int sprintf(char *buf, const char *fmt, ...);
 void *memcpy(void *dst, const void *src, size_t n);
 void *memset(void *dst, int c, size_t n);
 size_t strlen(const char *s);

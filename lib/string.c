@@ -1,5 +1,36 @@
 #include <types.h>
+#include <print.h>
+#include <drivers/dev_cons.h>
+#include <printk.h>
+#include <trap.h>
+void outputkk(char*,const char*,size_t);
+void printcharcc(char,char*);
+char *strcpy(char *,const char *);
+void*  memset(void * ,int,size_t);
+int sprintf(char *buf, const char *fmt, ...) {
+	char ans[1000];
+	memset(ans,0,1000);
+	va_list ap;
+	va_start(ap,fmt);
 
+	vprintfmt(outputkk,ans,fmt,ap);
+	strcpy(buf,ans);
+	va_end(ap);
+		
+}
+void outputkk(char *data,const char *buf,size_t len){
+	int i;
+	for( i = 0;i<len;i++){
+		printcharcc(buf[i],&data[i]);
+	//	printcharcc(buf[i],&data[i-1]);
+	//	data++;
+//		 printcharc(buf[i]);
+	}
+	//printcharcc(buf[i],&data[i]);
+}
+void printcharcc(char ch,char* data){
+	*((volatile char *)data) = ch;
+}
 void *memcpy(void *dst, const void *src, size_t n) {
 	void *dstaddr = dst;
 	void *max = dst + n;
