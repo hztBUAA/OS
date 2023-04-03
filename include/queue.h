@@ -119,7 +119,9 @@
 	/* Exercise 2.2: Your code here. */  \
 	do {    \
 		(elm)->field.le_next = (listelm)->field.le_next;  \
-		((listelm)->field.le_next)->field.le_prev  = &((elm)->field.le_next);  \
+		if(!(listelm)->field.le_next) {        \
+			((listelm)->field.le_next)->field.le_prev  = &((elm)->field.le_next); \
+		}  \
 		(listelm)->field.le_next = elm;    \
 		(elm)->field.le_prev = &((listelm)->field.le_next);  \
 	} while(0)
@@ -128,6 +130,8 @@
  * already in the list.  The "field" name is the link element
  * as above.
  */
+
+ //原则：先将待插入的元素连接到前后元素的边进行处理，再处理前后元素对待插入元素的边进行处理
 #define LIST_INSERT_BEFORE(listelm, elm, field)                                                    \
 	do {                                                                                       \
 		(elm)->field.le_prev = (listelm)->field.le_prev;                                   \

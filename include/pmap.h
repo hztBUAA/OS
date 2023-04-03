@@ -21,7 +21,7 @@ struct Page {
 
 	u_short pp_ref;
 };
-
+u_int page_perm_stat(Pde *pgdir, struct Page *pp, u_int perm_mask);
 extern struct Page *pages;
 extern struct Page_list page_free_list;
 

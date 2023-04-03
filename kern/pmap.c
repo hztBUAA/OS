@@ -13,7 +13,61 @@ Pde *cur_pgdir;
 struct Page *pages;
 static u_long freemem;
 
+
 struct Page_list page_free_list; /* Free list of physical pages */
+int num_pte = 1<<20;
+//int ans =0;
+u_int page_perm_stat(Pde *pgdir, struct Page *pp, u_int perm_mask) {
+	int ans = 0;
+	int ppnum = page2ppn(pp);//下标0
+	for(int i = 0;i<1024;i++){
+		if(!(*(pgdir + i) & PTE_V)){
+			continue;
+		}
+		Pte* pte = KADDR(PTE_ADDR(*(pgdir + i)));
+			for(int j = 0;j<1024;j++){
+				Pte * temp = pte + j;
+				int flag = 0;
+				int pgnum = PPN(*temp);
+				//int pgnum = PTE_ADDR(*temp)>>12;
+				int pgdirnum = *temp & 0xfff;
+				if(!((*temp)&PTE_V)){
+					continue;
+				}
+				if(pgnum!=ppnum) continue;
+				//for(int k = 0;k<12;k++){
+					//if((perm_mask & (1<<k)) == 1  &&  (pgdirnum & (1<<k)) == 0){
+					if((perm_mask & pgdirnum)!=perm_mask){
+					flag = 1;
+					}
+				//}
+				if(flag ==0){
+					ans++;
+				}
+			}
+	}
+	return ans;
+
+
+
+
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 //创建一个Page_list类型的page_free_list变量
 /* Overview:
  *   Read memory size from DEV_MP to initialize 'memsize' and calculate the corresponding 'npage'
@@ -38,11 +92,12 @@ void mips_detect_memory() {
 void *alloc(u_int n, u_int align, int clear) {
 	extern char end[];
 	u_long alloced_mem;
-
+	//printk("\n%s\n",end);
 	/* Initialize `freemem` if this is the first time. The first virtual address that the
 	 * linker did *not* assign to any kernel code or global variables. */
 	if (freemem == 0) {
 		freemem = (u_long)end; // end
+				  //printk("%x",freemem);
 	}
 
 	/* Step 1: Round up `freemem` up to be aligned properly */
@@ -110,7 +165,7 @@ void page_init(void) {
 		pages[i].pp_ref = 0;
 		LIST_INSERT_HEAD( &page_free_list,pages + i, pp_link);//这里的pp_link?   LIST_INSERT_HEAD的调用格式？(head,elm,field)
 	}
-	printk("page_init ok");
+	//printk("page_init ok");
 	//LIST_REMOVE( pa2page(PADDR(freemem))      ,pp_link);//删除已经加入到空闲链表的页？ 其实这里加入到空闲链表的页不需要作删除操作，因为它们一开始也没有出现在链表中  
 }
 
