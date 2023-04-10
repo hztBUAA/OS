@@ -15,7 +15,7 @@
  *   3. You shouldn't use any 'return' statement because this function is 'noreturn'.
  */
 void schedule(int yield) {
-	static int count = 0; // remaining time slices of current env
+	static int count = 0; // remaining time slices of current env   static only init once
 	struct Env *e = curenv;
 
 	/* We always decrease the 'count' by 1.
@@ -35,5 +35,26 @@ void schedule(int yield) {
 	 *   'TAILQ_FIRST', 'TAILQ_REMOVE', 'TAILQ_INSERT_TAIL'
 	 */
 	/* Exercise 3.12: Your code here. */
+	count--;
+	if (yield || count == 0 || !e|| e->env_status == ENV_NOT_RUNNABLE)
+	{
+		if (curenv && curenv->env_status == ENV_RUNNABLE)
+		{
+			TAILQ_REMOVE(&env_sched_list, curenv, env_sched_link);
+			TAILQ_INSERT_TAIL(&env_sched_list, curenv, env_sched_link);
+		}
+		
+		/* code */
+		panic_on(TAILQ_EMPTY(&env_sched_list)== 1);//如果是空 错误出现
+		struct Env *new = TAILQ_FIRST(&env_sched_list);
+		count = new->env_pri;
+		env_run(new);
+	}
+	else{
+		env_run(e);
+	}
+
+
+
 
 }

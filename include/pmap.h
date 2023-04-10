@@ -21,12 +21,12 @@ struct Page {
 
 	u_short pp_ref;
 };
-
 extern struct Page *pages;
+//extern pages;
 extern struct Page_list page_free_list;
 
 static inline u_long page2ppn(struct Page *pp) {
-	return pp - pages;
+	return (u_long)(pp - pages);
 }
 //整个内存划分为pages
 static inline u_long page2pa(struct Page *pp) {
@@ -37,7 +37,7 @@ static inline struct Page *pa2page(u_long pa) {
 	if (PPN(pa) >= npage) {
 		panic("pa2page called with invalid pa: %x", pa);
 	}
-	return &pages[PPN(pa)];
+	return (pages+PPN(pa));
 }
 
 static inline u_long page2kva(struct Page *pp) {
@@ -72,7 +72,7 @@ struct Page *page_lookup(Pde *pgdir, u_long va, Pte **ppte);
 void page_remove(Pde *pgdir, u_int asid, u_long va);
 void tlb_invalidate(u_int asid, u_long va);
 
-extern struct Page *pages;
+//extern struct Page *pages;
 
 void physical_memory_manage_check(void);
 void page_check(void);

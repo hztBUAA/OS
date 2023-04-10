@@ -84,7 +84,7 @@
 #define LIST_EMPTY(head) ((head)->lh_first == NULL)
 
 /*
- * Return the first element in the list named "head".
+ * Return the first element(POINTER) in the list named "head".
  */
 #define LIST_FIRST(head) ((head)->lh_first)
 //lh element  le pointer
@@ -119,7 +119,8 @@
 	/* Exercise 2.2: Your code here. */  \
 	do {    \
 		(elm)->field.le_next = (listelm)->field.le_next;  \
-		((listelm)->field.le_next)->field.le_prev  = &((elm)->field.le_next);  \
+		if(!(listelm)->field.le_next)                 \
+			((listelm)->field.le_next)->field.le_prev  = &((elm)->field.le_next);  \
 		(listelm)->field.le_next = elm;    \
 		(elm)->field.le_prev = &((listelm)->field.le_next);  \
 	} while(0)
@@ -139,6 +140,7 @@
 /*
  * Insert the element "elm" at the head of the list named "head".
  * The "field" name is the link element as above.
+ * 函数第四行才 此时才名正言顺将elm作为list_first元素
  */
 #define LIST_INSERT_HEAD(head, elm, field)                                                         \
 	do {                                                                                       \
@@ -183,6 +185,7 @@
 
 /*
  * Tail queue functions.
+ *空指针也可以取地址吗   悟了 这个不叫空指针  NULL是一个确定的指针 只是它不指向任何对象
  */
 #define TAILQ_INIT(head)                                                                           \
 	do {                                                                                       \

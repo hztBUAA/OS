@@ -110,7 +110,7 @@ void page_init(void) {
 		pages[i].pp_ref = 0;
 		LIST_INSERT_HEAD( &page_free_list,pages + i, pp_link);//这里的pp_link?   LIST_INSERT_HEAD的调用格式？(head,elm,field)
 	}
-	printk("page_init ok");
+	//printk("page_init ok");
 	//LIST_REMOVE( pa2page(PADDR(freemem))      ,pp_link);//删除已经加入到空闲链表的页？ 其实这里加入到空闲链表的页不需要作删除操作，因为它们一开始也没有出现在链表中  
 }
 
@@ -254,7 +254,7 @@ int page_insert(Pde *pgdir, u_int asid, struct Page *pp, u_long va, u_int perm) 
 /*Overview:
     Look up the Page that virtual address `va` map to.
   Post-Condition:
-    Return a pointer to corresponding Page, and store it's page table entry to *ppte.
+    Return a pointer to corresponding Page, and store its page table entry to *ppte.
     If `va` doesn't mapped to any Page, return NULL.*/
 struct Page *page_lookup(Pde *pgdir, u_long va, Pte **ppte) {
 	struct Page *pp;
@@ -270,7 +270,7 @@ struct Page *page_lookup(Pde *pgdir, u_long va, Pte **ppte) {
 
 	/* Step 2: Get the corresponding Page struct. */
 	/* Hint: Use function `pa2page`, defined in include/pmap.h . */
-	pp = pa2page(*pte);
+	pp = pa2page(*pte);//pa2page的返回值是struct Page *
 	if (ppte) {
 		*ppte = pte;
 	}
@@ -305,7 +305,7 @@ void page_remove(Pde *pgdir, u_int asid, u_long va) {
 	/* Step 2: Decrease reference count on 'pp'. */
 	page_decref(pp);
 
-	/* Step 3: Flush TLB. */
+	/* Step 3: Flush 页表项and TLB. */
 	*pte = 0;
 	tlb_invalidate(asid, va);
 	return;

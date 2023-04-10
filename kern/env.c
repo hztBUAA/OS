@@ -5,6 +5,7 @@
 #include <pmap.h>
 #include <printk.h>
 #include <sched.h>
+#include <error.h>
 
 // The maximum number of available ASIDs.
 // Our bitmap requires this to be a multiple of 32.
@@ -78,7 +79,8 @@ static void map_segment(Pde *pgdir, u_int asid, u_long pa, u_long va, u_int size
 		 *  Use 'pa2page' to get the 'struct Page *' of the physical address.
 		 */
 		/* Exercise 3.2: Your code here. */
-
+		struct Page* pp = pa2page(pa + i);
+		page_insert(pgdir, asid, pp, va +  i, perm|PTE_V);
 	}
 }
 
@@ -148,25 +150,40 @@ void env_init(void) {
 	/* Step 1: Initialize 'env_free_list' with 'LIST_INIT' and 'env_sched_list' with
 	 * 'TAILQ_INIT'. */
 	/* Exercise 3.1: Your code here. (1/2) */
+	LIST_INIT(&env_free_list);
+	TAILQ_INIT(&env_sched_list);
 
 	/* Step 2: Traverse the elements of 'envs' array, set their status to 'ENV_FREE' and insert
 	 * them into the 'env_free_list'. Make sure, after the insertion, the order of envs in the
 	 * list should be the same as they are in the 'envs' array. */
 
 	/* Exercise 3.1: Your code here. (2/2) */
+	//如何判断envs数组的大小  NENV
+	//使用LIST_INSERT_HEAD 倒序即可
+	for(i = NENV -1 ; i >= 0; i--){
+		LIST_INSERT_HEAD((&env_free_list), &envs[i], env_link);
+	}
+
 
 	/*
 	 * We want to map 'UPAGES' and 'UENVS' to *every* user space with PTE_G permission (without
 	 * PTE_D), then user programs can read (but cannot write) kernel data structures 'pages' and
 	 * 'envs'.
+	 *UPAGES和UENVS是映射pages和envs的内核地址的 现将内核的虚拟地址转化为物理地址PADDR
 	 *
+	 *
+	 *这个them指的是前两个pages和envs？   页表包含了映射这两部分的任务
 	 * Here we first map them into the *template* page directory 'base_pgdir'.
 	 * Later in 'env_setup_vm', we will copy them into each 'env_pgdir'.
 	 */
-	struct Page *p;
+	struct Page* p;
 	panic_on(page_alloc(&p));
 	p->pp_ref++;
 
+
+	//原来base_pgdir是在这里被申请一个页并且将pages物理地址以页的方式映射 同时envs也是
+	//base_pgdir是模板页目录项。申请了一页 也就是可以有1024个页目录项足够了
+	//之后创建进程env时可以直接copy  简化创建过程  而且还节省了二级页表空间
 	base_pgdir = (Pde *)page2kva(p);
 	map_segment(base_pgdir, 0, PADDR(pages), UPAGES, ROUND(npage * sizeof(struct Page), BY2PG),
 		    PTE_G);
@@ -188,6 +205,8 @@ static int env_setup_vm(struct Env *e) {
 	struct Page *p;
 	try(page_alloc(&p));
 	/* Exercise 3.3: Your code here. */
+	p->pp_ref++;
+	e->env_pgdir = page2kva(p);
 
 	/* Step 2: Copy the template page directory 'base_pgdir' to 'e->env_pgdir'. */
 	/* Hint:
@@ -200,6 +219,8 @@ static int env_setup_vm(struct Env *e) {
 	/* Step 3: Map its own page table at 'UVPT' with readonly permission.
 	 * As a result, user programs can read its page table through 'UVPT' */
 	e->env_pgdir[PDX(UVPT)] = PADDR(e->env_pgdir) | PTE_V;
+	//这里的env_pgdir是内核seg0地址？是内核中的页表？
+	//没错 通过前面关于env_pgdir的申请物理页知道它的虚拟地址在kseg0中 是内核中页表  PADDR转化成其映射的物理页的地址
 	return 0;
 }
 
@@ -228,9 +249,16 @@ int env_alloc(struct Env **new, u_int parent_id) {
 
 	/* Step 1: Get a free Env from 'env_free_list' */
 	/* Exercise 3.4: Your code here. (1/4) */
+	e = LIST_FIRST(&env_free_list);
+	if(!e){
+		return -E_NO_FREE_ENV;
+	}
+	LIST_REMOVE(e,env_link);
 
 	/* Step 2: Call a 'env_setup_vm' to initialize the user address space for this new Env. */
 	/* Exercise 3.4: Your code here. (2/4) */
+	env_setup_vm(e);
+
 
 	/* Step 3: Initialize these fields for the new Env with appropriate values:
 	 *   'env_user_tlb_mod_entry' (lab4), 'env_runs' (lab6), 'env_id' (lab3), 'env_asid' (lab3),
@@ -240,6 +268,12 @@ int env_alloc(struct Env **new, u_int parent_id) {
 	 *   Use 'asid_alloc' to allocate a free asid.
 	 *   Use 'mkenvid' to allocate a free envid.
 	 */
+
+
+	 e->env_id = mkenvid(e);
+	 e->env_parent_id= parent_id;
+	 asid_alloc(&(e->env_asid));
+	
 	e->env_user_tlb_mod_entry = 0; // for lab4
 	e->env_runs = 0;	       // for lab6
 	/* Exercise 3.4: Your code here. (3/4) */
@@ -252,7 +286,6 @@ int env_alloc(struct Env **new, u_int parent_id) {
 
 	/* Step 5: Remove the new Env from env_free_list. */
 	/* Exercise 3.4: Your code here. (4/4) */
-
 	*new = e;
 	return 0;
 }
@@ -267,7 +300,7 @@ int env_alloc(struct Env **new, u_int parent_id) {
  * Hint:
  *   The address of env structure is passed through 'data' from 'elf_load_seg', where this function
  *   works as a callback.
- *
+ *r = map_page(data, va + i, 0, perm, bin + i, MIN(bin_size - i, BY2PG)
  */
 static int load_icode_mapper(void *data, u_long va, size_t offset, u_int perm, const void *src,
 			     size_t len) {
@@ -277,13 +310,14 @@ static int load_icode_mapper(void *data, u_long va, size_t offset, u_int perm, c
 
 	/* Step 1: Allocate a page with 'page_alloc'. */
 	/* Exercise 3.5: Your code here. (1/2) */
-
+	page_alloc(&p);
 	/* Step 2: If 'src' is not NULL, copy the 'len' bytes started at 'src' into 'offset' at this
 	 * page. */
 	// Hint: You may want to use 'memcpy'.
 	if (src != NULL) {
 		/* Exercise 3.5: Your code here. (2/2) */
-
+		memcpy(page2kva(p)+offset, src, len);
+		//最直观的加载
 	}
 
 	/* Step 3: Insert 'p' into 'env->env_pgdir' at 'va' with 'perm'. */
@@ -306,19 +340,22 @@ static void load_icode(struct Env *e, const void *binary, size_t size) {
 	 * As a loader, we just care about loadable segments, so parse only program headers here.
 	 */
 	size_t ph_off;
-	ELF_FOREACH_PHDR_OFF (ph_off, ehdr) {
+	ELF_FOREACH_PHDR_OFF (ph_off, ehdr) { 
+		//ph_off得到了ELF文件头的程序segment的内容地址相对于binary的偏移量
+		//而这个ph_off是从ehdr里面的结构体成员得到的
 		Elf32_Phdr *ph = (Elf32_Phdr *)(binary + ph_off);
 		if (ph->p_type == PT_LOAD) {
 			// 'elf_load_seg' is defined in lib/elfloader.c
 			// 'load_icode_mapper' defines the way in which a page in this segment
 			// should be mapped.
+			//seg 由若干页组成   elf_load_seg通过执行若干次load_icode_mapper实现
 			panic_on(elf_load_seg(ph, binary + ph->p_offset, load_icode_mapper, e));
 		}
 	}
 
 	/* Step 3: Set 'e->env_tf.cp0_epc' to 'ehdr->e_entry'. */
 	/* Exercise 3.6: Your code here. */
-
+	e->env_tf.cp0_epc = ehdr->e_entry;
 }
 
 /* Overview:
@@ -332,15 +369,18 @@ static void load_icode(struct Env *e, const void *binary, size_t size) {
 struct Env *env_create(const void *binary, size_t size, int priority) {
 	struct Env *e;
 	/* Step 1: Use 'env_alloc' to alloc a new env, with 0 as 'parent_id'. */
+	//只有操作系统初始化时直接创建进程时 才用这个env_create函数  同时说明操作系统的内核进程的id=0
 	/* Exercise 3.7: Your code here. (1/3) */
-
+	env_alloc(&e, 0);
 	/* Step 2: Assign the 'priority' to 'e' and mark its 'env_status' as runnable. */
 	/* Exercise 3.7: Your code here. (2/3) */
-
+	e->env_pri = priority;
+	e->env_status = ENV_RUNNABLE;
 	/* Step 3: Use 'load_icode' to load the image from 'binary', and insert 'e' into
 	 * 'env_sched_list' using 'TAILQ_INSERT_HEAD'. */
 	/* Exercise 3.7: Your code here. (3/3) */
-
+	load_icode(e, binary, size);
+	TAILQ_INSERT_HEAD(&env_sched_list, e, env_sched_link);
 	return e;
 }
 
@@ -458,7 +498,7 @@ void env_run(struct Env *e) {
 
 	/* Step 3: Change 'cur_pgdir' to 'curenv->env_pgdir', switching to its address space. */
 	/* Exercise 3.8: Your code here. (1/2) */
-
+	cur_pgdir = curenv->env_pgdir;
 	/* Step 4: Use 'env_pop_tf' to restore the curenv's saved context (registers) and return/go
 	 * to user mode.
 	 *
@@ -468,7 +508,7 @@ void env_run(struct Env *e) {
 	 *    returning to the kernel caller, making 'env_run' a 'noreturn' function as well.
 	 */
 	/* Exercise 3.8: Your code here. (2/2) */
-
+	env_pop_tf(&curenv->env_tf, curenv->env_id);
 }
 
 void env_check() {
