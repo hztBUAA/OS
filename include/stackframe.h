@@ -9,10 +9,10 @@
 	move    k0, sp
 .set reorder
 	bltz    sp, 1f
-	li      sp, KSTACKTOP
+	li      sp, KSTACKTOP     #用户态进来的话 会更新KSTACKTOP
 .set noreorder
 1:
-	subu    sp, sp, TF_SIZE
+	subu    sp, sp, TF_SIZE  #如果是内核态  可能会异常重入 所以sp得续上前一次的
 	sw      k0, TF_REG29(sp)
 	mfc0    k0, CP0_STATUS
 	sw      k0, TF_STATUS(sp)

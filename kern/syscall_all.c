@@ -59,7 +59,7 @@ u_int sys_getenvid(void) {
 void __attribute__((noreturn)) sys_yield(void) {
 	// Hint: Just use 'schedule' with 'yield' set.
 	/* Exercise 4.7: Your code here. */
-
+	schedule(1);
 }
 
 /* Overview:
@@ -136,17 +136,39 @@ static inline int is_illegal_va_range(u_long va, u_int len) {
 int sys_mem_alloc(u_int envid, u_int va, u_int perm) {
 	struct Env *env;
 	struct Page *pp;
-
+	int ret = 0;
 	/* Step 1: Check if 'va' is a legal user virtual address using 'is_illegal_va'. */
 	/* Exercise 4.4: Your code here. (1/3) */
-
+	if (is_illegal_va(va))
+	{
+		return -E_INVAL;
+	}
+	
 	/* Step 2: Convert the envid to its corresponding 'struct Env *' using 'envid2env'. */
-	/* Hint: **Always** validate the permission in syscalls! */
+	/* Hint: **Always** validate the permission in syscalls! */   
 	/* Exercise 4.4: Your code here. (2/3) */
+	//if ((perm&PTE_V) == 0 || (perm & PTE_COW)!= 0)//
+	//{
+		//printk("lala");
+	//	return -E_INVAL;
+	//}
+	
+	ret = envid2env(envid, &env, 1);//1表示checkperm set
+	// 进程只可以修改他⾃⼰的进程空间和直接⼦进程的进程空间。
+// 所以这⾥在进⾏ id<->进程 的对应时，检查位的参数要置1
+	if (ret < 0)
+	{
+		return ret;
+	}
 
+	
 	/* Step 3: Allocate a physical page using 'page_alloc'. */
 	/* Exercise 4.4: Your code here. (3/3) */
-
+	ret = page_alloc(&pp);
+	if (ret < 0)
+	{
+		return ret;
+	}
 	/* Step 4: Map the allocated page at 'va' with permission 'perm' using 'page_insert'. */
 	return page_insert(env->env_pgdir, env->env_asid, pp, va, perm);
 }
@@ -168,22 +190,46 @@ int sys_mem_alloc(u_int envid, u_int va, u_int perm) {
 int sys_mem_map(u_int srcid, u_int srcva, u_int dstid, u_int dstva, u_int perm) {
 	struct Env *srcenv;
 	struct Env *dstenv;
+	u_int round_srcva, round_dstva;
 	struct Page *pp;
-
+	Pte *ppte;
+	int ret =0;
+	//printk("1-4\n");
 	/* Step 1: Check if 'srcva' and 'dstva' are legal user virtual addresses using
 	 * 'is_illegal_va'. */
 	/* Exercise 4.5: Your code here. (1/4) */
-
+	round_srcva = ROUNDDOWN(srcva, BY2PG);
+    round_dstva = ROUNDDOWN(dstva, BY2PG);
+	
+	if (is_illegal_va(srcva) || is_illegal_va(dstva))
+	{
+		return -E_INVAL;
+	}
+	printk("in sys_mem_map:1-1\n");
 	/* Step 2: Convert the 'srcid' to its corresponding 'struct Env *' using 'envid2env'. */
 	/* Exercise 4.5: Your code here. (2/4) */
-
+	ret = envid2env(srcid,&srcenv,0);  // perm?
+	if (ret < 0)
+	{
+		return ret;
+	}
+	
 	/* Step 3: Convert the 'dstid' to its corresponding 'struct Env *' using 'envid2env'. */
 	/* Exercise 4.5: Your code here. (3/4) */
-
+	ret = envid2env(dstid,&dstenv,0);
+	if (ret < 0)
+	{
+		return ret;
+	}
 	/* Step 4: Find the physical page mapped at 'srcva' in the address space of 'srcid'. */
 	/* Return -E_INVAL if 'srcva' is not mapped. */
 	/* Exercise 4.5: Your code here. (4/4) */
-
+	pp = page_lookup(srcenv->env_pgdir,srcva,&ppte);
+	if (pp =NULL)
+	{
+		return -E_INVAL;
+	}
+	printk("in sys_mem_map:1-2\ndstva:%x\nperm:%d",dstva,perm);
 	/* Step 5: Map the physical page at 'dstva' in the address space of 'dstid'. */
 	return page_insert(dstenv->env_pgdir, dstenv->env_asid, pp, dstva, perm);
 }
@@ -200,13 +246,20 @@ int sys_mem_map(u_int srcid, u_int srcva, u_int dstid, u_int dstva, u_int perm) 
  */
 int sys_mem_unmap(u_int envid, u_int va) {
 	struct Env *e;
-
+	int ret = 0;
 	/* Step 1: Check if 'va' is a legal user virtual address using 'is_illegal_va'. */
 	/* Exercise 4.6: Your code here. (1/2) */
-
+	if(is_illegal_va(va)){
+		return -E_INVAL;
+	}
 	/* Step 2: Convert the envid to its corresponding 'struct Env *' using 'envid2env'. */
 	/* Exercise 4.6: Your code here. (2/2) */
-
+	ret = envid2env(envid, &e, 0);//perm?
+	if (ret!=0)
+	{
+		return ret;
+	}
+	
 	/* Step 3: Unmap the physical page at 'va' in the address space of 'envid'. */
 	page_remove(e->env_pgdir, e->env_asid, va);
 	return 0;
@@ -480,7 +533,7 @@ void *syscall_table[MAX_SYSNO] = {
  */
 void do_syscall(struct Trapframe *tf) {
 	int (*func)(u_int, u_int, u_int, u_int, u_int);
-	int sysno = tf->regs[4];
+	int sysno = tf->regs[4]; //4->a0
 	if (sysno < 0 || sysno >= MAX_SYSNO) {
 		tf->regs[2] = -E_NO_SYS;
 		return;
@@ -488,10 +541,11 @@ void do_syscall(struct Trapframe *tf) {
 
 	/* Step 1: Add the EPC in 'tf' by a word (size of an instruction). */
 	/* Exercise 4.2: Your code here. (1/4) */
-
+	tf->cp0_epc += 4;
 	/* Step 2: Use 'sysno' to get 'func' from 'syscall_table'. */
 	/* Exercise 4.2: Your code here. (2/4) */
-
+	//关于函数指针的用法？
+	func = syscall_table[sysno];
 	/* Step 3: First 3 args are stored in $a1, $a2, $a3. */
 	u_int arg1 = tf->regs[5];
 	u_int arg2 = tf->regs[6];
@@ -499,10 +553,14 @@ void do_syscall(struct Trapframe *tf) {
 
 	/* Step 4: Last 2 args are stored in stack at [$sp + 16 bytes], [$sp + 20 bytes]. */
 	u_int arg4, arg5;
+	u_int *p;
 	/* Exercise 4.2: Your code here. (3/4) */
-
+	p = tf->regs[29] + 16;
+	arg4 = *(p);//?
+	p = tf->regs[29] + 20;
+	arg5 = *(p);
 	/* Step 5: Invoke 'func' with retrieved arguments and store its return value to $v0 in 'tf'.
 	 */
 	/* Exercise 4.2: Your code here. (4/4) */
-
+	tf->regs[2] = (*func)(arg1,arg2,arg3,arg4,arg5); 
 }

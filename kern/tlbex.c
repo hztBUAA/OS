@@ -3,7 +3,7 @@
 
 static void passive_alloc(u_int va, Pde *pgdir, u_int asid) {
 	struct Page *p = NULL;
-
+printk("\nva:%x",va);
 	if (va < UTEMP) {
 		panic("address too low");
 	}
