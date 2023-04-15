@@ -73,13 +73,17 @@ static void duppage(u_int envid, u_int vpn) {
 	/* Step 1: Get the permission of the page. */
 	/* Hint: Use 'vpt' to find the page table entry. */
 	/* Exercise 4.10: Your code here. (1/2) */
-
+	perm = ((Pte*)(*vpt))[vpn]&0xfff;
 	/* Step 2: If the page is writable, and not shared with children, and not marked as COW yet,
 	 * then map it as copy-on-write, both in the parent (0) and the child (envid). */
 	/* Hint: The page should be first mapped to the child before remapped in the parent. (Why?)
 	 */
 	/* Exercise 4.10: Your code here. (2/2) */
+	if (perm&PTE_D!=0 && perm&PTE_LIBRARY==0 && perm&PTE_COW==0){
+		
+	}
 
+	
 }
 
 /* Overview:

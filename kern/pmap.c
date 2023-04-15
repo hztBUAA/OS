@@ -178,9 +178,6 @@ void page_free(struct Page *pp) {
 static int pgdir_walk(Pde *pgdir, u_long va, int create, Pte **ppte) {
 	Pde *pgdir_entryp;
 	struct Page *pp;
-	if(va == 0x3fe000){
-		printk("map5-va:%x\n",va);
-	}
 	/* Step 1: Get the corresponding page directory entry. */
 	/* Exercise 2.6: Your code here. (1/3) */
 	pgdir_entryp = pgdir + PDX(va);//页目录表的正确页表项
@@ -240,7 +237,7 @@ int page_insert(Pde *pgdir, u_int asid, struct Page *pp, u_long va, u_int perm) 
 			return 0;
 		}
 	}
-	printk("in page_insert:1-2\n");
+	//printk("in page_insert:1-2\n");
 	/* Step 2: Flush TLB with 'tlb_invalidate'. */
 	/* Exercise 2.7: Your code here. (1/3) */
 	tlb_invalidate(asid,va);//为什么这个va本身没有对应的映射还需要flush？
@@ -249,13 +246,14 @@ int page_insert(Pde *pgdir, u_int asid, struct Page *pp, u_long va, u_int perm) 
 	/* Exercise 2.7: Your code here. (2/3) */
 	int ret = 0;
 	if((ret=pgdir_walk(pgdir,va,1,&pte))<0) return ret;
-	printk("in page_insert:1-3\n");
+	//printk("pte:%x",pte);
+	//printk("in page_insert:1-3\n");
 	/* Step 4: Insert the page to the page table entry with 'perm | PTE_V' and increase its
 	 * 'pp_ref'. */
 	/* Exercise 2.7: Your code here. (3/3) */
 	*pte = page2pa(pp) | perm | PTE_V;
 	pp->pp_ref++;
-	printk("in page_insert:1-4\n");
+	//printk("in page_insert:1-4\n");
 	return 0;
 }
 

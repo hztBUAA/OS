@@ -205,10 +205,10 @@ int sys_mem_map(u_int srcid, u_int srcva, u_int dstid, u_int dstva, u_int perm) 
 	{
 		return -E_INVAL;
 	}
-	printk("in sys_mem_map:1-1\n");
+	//printk("in sys_mem_map:1-1\n");
 	/* Step 2: Convert the 'srcid' to its corresponding 'struct Env *' using 'envid2env'. */
 	/* Exercise 4.5: Your code here. (2/4) */
-	ret = envid2env(srcid,&srcenv,0);  // perm?
+	ret = envid2env(srcid,&srcenv,1);  // perm?
 	if (ret < 0)
 	{
 		return ret;
@@ -216,7 +216,7 @@ int sys_mem_map(u_int srcid, u_int srcva, u_int dstid, u_int dstva, u_int perm) 
 	
 	/* Step 3: Convert the 'dstid' to its corresponding 'struct Env *' using 'envid2env'. */
 	/* Exercise 4.5: Your code here. (3/4) */
-	ret = envid2env(dstid,&dstenv,0);
+	ret = envid2env(dstid,&dstenv,1);
 	if (ret < 0)
 	{
 		return ret;
@@ -229,7 +229,7 @@ int sys_mem_map(u_int srcid, u_int srcva, u_int dstid, u_int dstva, u_int perm) 
 	{
 		return -E_INVAL;
 	}
-	printk("in sys_mem_map:1-2\ndstva:%x\nperm:%d",dstva,perm);
+	//printk("in sys_mem_map:1-2\ndstva:%x\nperm:%d",dstva,perm);
 	/* Step 5: Map the physical page at 'dstva' in the address space of 'dstid'. */
 	return page_insert(dstenv->env_pgdir, dstenv->env_asid, pp, dstva, perm);
 }
@@ -254,7 +254,7 @@ int sys_mem_unmap(u_int envid, u_int va) {
 	}
 	/* Step 2: Convert the envid to its corresponding 'struct Env *' using 'envid2env'. */
 	/* Exercise 4.6: Your code here. (2/2) */
-	ret = envid2env(envid, &e, 0);//perm?
+	ret = envid2env(envid, &e, 1);//perm?
 	if (ret!=0)
 	{
 		return ret;
@@ -266,7 +266,7 @@ int sys_mem_unmap(u_int envid, u_int va) {
 }
 
 /* Overview:
- *   Allocate a new env as a child of 'curenv'.
+ *   Allocate a new env as a child of 'cuquitrenv'.
  *
  * Post-Condition:
  *   Returns the child's envid on success, and
@@ -284,16 +284,18 @@ int sys_exofork(void) {
 
 	/* Step 1: Allocate a new env using 'env_alloc'. */
 	/* Exercise 4.9: Your code here. (1/4) */
-
+	env_alloc(&e,curenv->env_id);
 	/* Step 2: Copy the current Trapframe below 'KSTACKTOP' to the new env's 'env_tf'. */
 	/* Exercise 4.9: Your code here. (2/4) */
-
+	memcopy((void*)KSTACKTOP-sizeof(struct Trapframe),
+	(void*)(&(e->env_tf)),sizeof(struct Trapframe));
 	/* Step 3: Set the new env's 'env_tf.regs[2]' to 0 to indicate the return value in child. */
 	/* Exercise 4.9: Your code here. (3/4) */
-
+	e->env_tf.regs[2] = 0;
 	/* Step 4: Set up the new env's 'env_status' and 'env_pri'.  */
 	/* Exercise 4.9: Your code here. (4/4) */
-
+	e->env_pri = curenv->env_pri;
+	e->env_status = ENV_NOT_RUNNABLE;
 	return e->env_id;
 }
 
@@ -373,20 +375,21 @@ void sys_panic(char *msg) {
  */
 int sys_ipc_recv(u_int dstva) {
 	/* Step 1: Check if 'dstva' is either zero or a legal address. */
-	if (dstva != 0 && is_illegal_va(dstva)) {
+	if (dstva != 0 && is_illegal_va(dstva)) { // 不等于0且非法  意思是0或者其他非0合法
 		return -E_INVAL;
 	}
 
 	/* Step 2: Set 'curenv->env_ipc_recving' to 1. */
 	/* Exercise 4.8: Your code here. (1/8) */
-
+	curenv->env_ipc_recving =1;
 	/* Step 3: Set the value of 'curenv->env_ipc_dstva'. */
 	/* Exercise 4.8: Your code here. (2/8) */
-
+	curenv->env_ipc_dstva = dstva;
 	/* Step 4: Set the status of 'curenv' to 'ENV_NOT_RUNNABLE' and remove it from
 	 * 'env_sched_list'. */
 	/* Exercise 4.8: Your code here. (3/8) */
-
+	curenv->env_status = ENV_NOT_RUNNABLE;
+	TAILQ_REMOVE(&env_sched_list,curenv,env_sched_link);
 	/* Step 5: Give up the CPU and block until a message is received. */
 	((struct Trapframe *)KSTACKTOP - 1)->regs[2] = 0;
 	schedule(1);
@@ -414,15 +417,19 @@ int sys_ipc_try_send(u_int envid, u_int value, u_int srcva, u_int perm) {
 
 	/* Step 1: Check if 'srcva' is either zero or a legal address. */
 	/* Exercise 4.8: Your code here. (4/8) */
-
+	if(srcva!=0&&is_illegal_va(srcva)){
+		return -E_INVAL;
+	}
 	/* Step 2: Convert 'envid' to 'struct Env *e'. */
 	/* This is the only syscall where the 'envid2env' should be used with 'checkperm' UNSET,
 	 * because the target env is not restricted to 'curenv''s children. */
 	/* Exercise 4.8: Your code here. (5/8) */
-
+	envid2env(envid, &e, 0);
 	/* Step 3: Check if the target is waiting for a message. */
 	/* Exercise 4.8: Your code here. (6/8) */
-
+	if(e->env_ipc_recving!=1){
+		return -E_IPC_NOT_RECV;
+	}
 	/* Step 4: Set the target's ipc fields. */
 	e->env_ipc_value = value;
 	e->env_ipc_from = curenv->env_id;
@@ -432,13 +439,19 @@ int sys_ipc_try_send(u_int envid, u_int value, u_int srcva, u_int perm) {
 	/* Step 5: Set the target's status to 'ENV_RUNNABLE' again and insert it to the tail of
 	 * 'env_sched_list'. */
 	/* Exercise 4.8: Your code here. (7/8) */
-
+	e->env_status = ENV_RUNNABLE;
+	TAILQ_INSERT_TAIL(&env_sched_list,e,env_sched_link);
 	/* Step 6: If 'srcva' is not zero, map the page at 'srcva' in 'curenv' to 'e->env_ipc_dstva'
 	 * in 'e'. */
 	/* Return -E_INVAL if 'srcva' is not zero and not mapped in 'curenv'. */
 	if (srcva != 0) {
 		/* Exercise 4.8: Your code here. (8/8) */
-
+		p = page_lookup(curenv->env_pgdir,srcva,NULL);
+		if(p == NULL){
+			return -E_INVAL;
+		}
+		return page_insert(e->env_pgdir, e->env_asid,p,e->env_ipc_dstva,perm);
+		//sys_mem_map(curenv->env_asid,srcva,e->env_id,e->env_ipc_dstva,perm);
 	}
 	return 0;
 }
