@@ -177,6 +177,7 @@ void env_init(void) {
 	//使用LIST_INSERT_HEAD 倒序即可
 	for(i = NENV -1 ; i >= 0; i--){
 		LIST_INSERT_HEAD((&env_free_list), &envs[i], env_link);
+		envs[i].env_status = ENV_FREE;
 	}
 
 
@@ -268,7 +269,6 @@ int env_alloc(struct Env **new, u_int parent_id) {
 	if(!e){
 		return -E_NO_FREE_ENV;
 	}
-	LIST_REMOVE(e,env_link);
 
 	/* Step 2: Call a 'env_setup_vm' to initialize the user address space for this new Env. */
 	/* Exercise 3.4: Your code here. (2/4) */
@@ -302,6 +302,7 @@ int env_alloc(struct Env **new, u_int parent_id) {
 	/* Step 5: Remove the new Env from env_free_list. */
 	/* Exercise 3.4: Your code here. (4/4) */
 	*new = e;
+	LIST_REMOVE(e,env_link);
 	return 0;
 }
 
@@ -503,7 +504,7 @@ void env_run(struct Env *e) {
 	 *   If not, we may be switching from a previous env, so save its context into
 	 *   'curenv->env_tf' first.
 	 */
-	if (curenv) {
+	if (curenv != NULL) {
 		curenv->env_tf = *((struct Trapframe *)KSTACKTOP - 1);
 	}
 
@@ -523,7 +524,7 @@ void env_run(struct Env *e) {
 	 *    returning to the kernel caller, making 'env_run' a 'noreturn' function as well.
 	 */
 	/* Exercise 3.8: Your code here. (2/2) */
-	env_pop_tf(&curenv->env_tf, curenv->env_id);
+	env_pop_tf(&(curenv->env_tf), curenv->env_asid);
 }
 
 void env_check() {

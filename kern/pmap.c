@@ -228,11 +228,11 @@ int page_insert(Pde *pgdir, u_int asid, struct Page *pp, u_long va, u_int perm) 
 	//printk("in page_insert:1-1\npte:%x\n*pte:%x\n",pte,*pte);
 	if (pte && (*pte & PTE_V)) {//pte表示这个页表项存在 （）表示这个页表项的有效
 		if (pa2page(*pte) != pp) {//页表项显示的物理地址（即通过walk函数查找映射物理页）对应的物理页
-		printk("va存在对应物理页映射 但不是这个pp\n");
+		//printk("va存在对应物理页映射 但不是这个pp\n");
 			page_remove(pgdir, asid, va);
 		} else {//?疑惑   为什么如果对应了就是这页物理地址时还需要操作 解答 原来是删除tlb中的项，这里为什么并没有去把tlb的表项也进行更新呢？
 			tlb_invalidate(asid, va);
-			printk("va存在对应物理页映射 且是这个pp\n");
+			//printk("va存在对应物理页映射 且是这个pp\n");
 			*pte = page2pa(pp) | perm | PTE_V;
 			return 0;
 		}
@@ -245,14 +245,25 @@ int page_insert(Pde *pgdir, u_int asid, struct Page *pp, u_long va, u_int perm) 
 	/* If failed to create, return the error. */
 	/* Exercise 2.7: Your code here. (2/3) */
 	int ret = 0;
-	if((ret=pgdir_walk(pgdir,va,1,&pte))<0) return ret;
+	if((ret=pgdir_walk(pgdir,va,1,&pte))<0) return ret;//触发TLBmiss？
 	//printk("pte:%x",pte);
 	//printk("in page_insert:1-3\n");
 	/* Step 4: Insert the page to the page table entry with 'perm | PTE_V' and increase its
 	 * 'pp_ref'. */
 	/* Exercise 2.7: Your code here. (3/3) */
 	*pte = page2pa(pp) | perm | PTE_V;
-	pp->pp_ref++;
+	//if (asid == 4097)
+	//{
+	//	printk("\ndebugk\n");
+	//}
+	// if (ret == 0)
+	// {
+	 	pp->pp_ref++;
+	// }
+	
+	
+	
+	
 	//printk("in page_insert:1-4\n");
 	return 0;
 }

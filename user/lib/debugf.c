@@ -22,7 +22,7 @@ static void debug_flush(struct debug_ctx *ctx) {
 static void debug_output(void *data, const char *s, size_t l) {
 	struct debug_ctx *ctx = (struct debug_ctx *)data;
 
-	while (ctx->pos + l > BUF_LEN) {
+	while (ctx->pos + l > BUF_LEN) { // why 1024?  while?
 		size_t n = BUF_LEN - ctx->pos;
 		memcpy(ctx->buf + ctx->pos, s, n);
 		s += n;

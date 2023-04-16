@@ -1,7 +1,7 @@
 #include <env.h>
 #include <lib.h>
 #include <mmu.h>
-
+#include <string.h>
 /* Overview:
  *   Map the faulting page to a private writable copy.
  *
@@ -13,31 +13,38 @@
  *  - Otherwise, this handler should map a private writable copy of
  *    the faulting page at the same address.
  */
-static void __attribute__((noreturn)) cow_entry(struct Trapframe *tf) {
+static void __attribute__((noreturn)) cow_entry (struct Trapframe *tf) {
 	u_int va = tf->cp0_badvaddr;
 	u_int perm;
-
+	debugf("debug-cow_entry-1-1\n");
 	/* Step 1: Find the 'perm' in which the faulting address 'va' is mapped. */
 	/* Hint: Use 'vpt' and 'VPN' to find the page table entry. If the 'perm' doesn't have
 	 * 'PTE_COW', launch a 'user_panic'. */
 	/* Exercise 4.13: Your code here. (1/6) */
-
+	perm = (vpt)[VPN(va)] & 0xfff;//为什么不能用page_lookup?
+	//debugf("debug-cow_entry-1-2\n");
+	if((perm&PTE_COW) == 0){
+		user_panic("perm not PTE_COW");
+	}
 	/* Step 2: Remove 'PTE_COW' from the 'perm', and add 'PTE_D' to it. */
 	/* Exercise 4.13: Your code here. (2/6) */
-
+	perm = perm - PTE_COW;
+	perm = perm|PTE_D;////
 	/* Step 3: Allocate a new page at 'UCOW'. */
 	/* Exercise 4.13: Your code here. (3/6) */
-
+	syscall_mem_alloc(0,UCOW,perm);///
 	/* Step 4: Copy the content of the faulting page at 'va' to 'UCOW'. */
 	/* Hint: 'va' may not be aligned to a page! */
 	/* Exercise 4.13: Your code here. (4/6) */
 
+	memcpy((void*)UCOW, (void*)ROUNDDOWN(va,BY2PG), BY2PG);
 	// Step 5: Map the page at 'UCOW' to 'va' with the new 'perm'.
 	/* Exercise 4.13: Your code here. (5/6) */
-
+	syscall_mem_map(0, UCOW, 0, ROUNDDOWN(va,BY2PG), perm);
 	// Step 6: Unmap the page at 'UCOW'.
 	/* Exercise 4.13: Your code here. (6/6) */
-
+	syscall_mem_unmap(0, UCOW);
+	debugf("debug-cow_entry-1-3\n");
 	// Step 7: Return to the faulting routine.
 	int r = syscall_set_trapframe(0, tf);
 	user_panic("syscall_set_trapframe returned %d", r);
@@ -73,14 +80,19 @@ static void duppage(u_int envid, u_int vpn) {
 	/* Step 1: Get the permission of the page. */
 	/* Hint: Use 'vpt' to find the page table entry. */
 	/* Exercise 4.10: Your code here. (1/2) */
-	perm = ((Pte*)(*vpt))[vpn]&0xfff;
+	perm = (vpt)[vpn] & 0xfff;
+	addr = (vpn<<PGSHIFT);
 	/* Step 2: If the page is writable, and not shared with children, and not marked as COW yet,
 	 * then map it as copy-on-write, both in the parent (0) and the child (envid). */
 	/* Hint: The page should be first mapped to the child before remapped in the parent. (Why?)
 	 */
 	/* Exercise 4.10: Your code here. (2/2) */
-	if (perm&PTE_D!=0 && perm&PTE_LIBRARY==0 && perm&PTE_COW==0){
-		
+	if ((perm&PTE_D)!=0 && (perm&PTE_LIBRARY)==0 && (perm&PTE_COW)==0){
+		debugf("fork-debug-1-1\n");
+		perm |= PTE_COW;
+		perm = perm-PTE_D;
+		syscall_mem_map(0, addr, envid, addr,perm);
+		syscall_mem_map(0, addr, 0, addr, perm);
 	}
 
 	
@@ -101,25 +113,32 @@ int fork(void) {
 	u_int child;
 	u_int i;
 	extern volatile struct Env *env;
-
+	//debugf("fork-debug-0-1\n");
 	/* Step 1: Set our TLB Mod user exception entry to 'cow_entry' if not done yet. */
 	if (env->env_user_tlb_mod_entry != (u_int)cow_entry) {
 		try(syscall_set_tlb_mod_entry(0, cow_entry));
 	}
-
+	//debugf("fork-debug-0-2\n");
 	/* Step 2: Create a child env that's not ready to be scheduled. */
 	// Hint: 'env' should always point to the current env itself, so we should fix it to the
 	// correct value.
 	child = syscall_exofork();
-	if (child == 0) {
+	if (child == 0) {   //在子进程中 他看到的child值是0  （返回值的v0寄存器=0）
 		env = envs + ENVX(syscall_getenvid());
+		//debugf("fork-debug-0-3\n");
 		return 0;
 	}
-
+	//debugf("fork-debug-1-1\n");
 	/* Step 3: Map all mapped pages below 'USTACKTOP' into the child's address space. */
 	// Hint: You should use 'duppage'.
 	/* Exercise 4.15: Your code here. (1/2) */
-
+	for (i = 0; i < VPN(USTACKTOP); ++i) {
+		//判断对应第i页的页表项有效性（页在有效的前提下才需要从父进程继承到子进程）  前者是一级页表项  其实只需要后者就可以了？
+        if (((vpd)[i >> 10] & PTE_V) && ((vpt)[i] & PTE_V)) {
+            duppage(child, i);
+        }
+    }
+	//debugf("fork-debug-1-2\n");
 	/* Step 4: Set up the child's tlb mod handler and set child's 'env_status' to
 	 * 'ENV_RUNNABLE'. */
 	/* Hint:
@@ -127,6 +146,8 @@ int fork(void) {
 	 *   Child's TLB Mod user exception entry should handle COW, so set it to 'cow_entry'
 	 */
 	/* Exercise 4.15: Your code here. (2/2) */
-
-	return child;
+		try(syscall_set_tlb_mod_entry( child, cow_entry));////////在父进程中对孩子进程进行时设置？
+		syscall_set_env_status(child, ENV_RUNNABLE);
+	//debugf("fork-debug-1-3\n");
+	return child;//能运行到这里 是父进程
 }

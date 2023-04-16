@@ -43,7 +43,7 @@ Pte _do_tlb_refill(u_long va, u_int asid) {
 
 	/* Exercise 2.9: Your code here. */
 	while(1) {
-		if(!page_lookup(cur_pgdir,va,&pte) ) {
+		if(page_lookup(cur_pgdir,va,&pte) == NULL) {
 			passive_alloc(va,cur_pgdir,asid);
 		}
 		else break;
@@ -70,14 +70,14 @@ void do_tlb_mod(struct Trapframe *tf) {
 		tf->regs[29] = UXSTACKTOP;
 	}
 	tf->regs[29] -= sizeof(struct Trapframe);
-	*(struct Trapframe *)tf->regs[29] = tmp_tf;
+	*(struct Trapframe *)tf->regs[29] = tmp_tf;////////将当前现场保存在异常处理栈中
 
 	if (curenv->env_user_tlb_mod_entry) {
 		tf->regs[4] = tf->regs[29];
 		tf->regs[29] -= sizeof(tf->regs[4]);
 		// Hint: Set 'cp0_epc' in the context 'tf' to 'curenv->env_user_tlb_mod_entry'.
 		/* Exercise 4.11: Your code here. */
-
+		tf->cp0_epc = curenv->env_user_tlb_mod_entry;
 	} else {
 		panic("TLB Mod but no user handler registered");
 	}
