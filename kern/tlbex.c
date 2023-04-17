@@ -3,7 +3,7 @@
 
 static void passive_alloc(u_int va, Pde *pgdir, u_int asid) {
 	struct Page *p = NULL;
-
+//printk("\nva:%x",va);
 	if (va < UTEMP) {
 		panic("address too low");
 	}
@@ -43,7 +43,7 @@ Pte _do_tlb_refill(u_long va, u_int asid) {
 
 	/* Exercise 2.9: Your code here. */
 	while(1) {
-		if(!page_lookup(cur_pgdir,va,&pte) ) {
+		if(page_lookup(cur_pgdir,va,&pte) == NULL) {
 			passive_alloc(va,cur_pgdir,asid);
 		}
 		else break;
@@ -70,7 +70,7 @@ void do_tlb_mod(struct Trapframe *tf) {
 		tf->regs[29] = UXSTACKTOP;
 	}
 	tf->regs[29] -= sizeof(struct Trapframe);
-	*(struct Trapframe *)tf->regs[29] = tmp_tf;
+	*(struct Trapframe *)tf->regs[29] = tmp_tf;////////将当前现场保存在异常处理栈中
 
 	if (curenv->env_user_tlb_mod_entry) {
 		tf->regs[4] = tf->regs[29];

@@ -57,7 +57,7 @@ $(modules): tools
 	$(MAKE) --directory=$@
 
 $(mos_elf): $(modules) $(target_dir)
-	$(LD) $(LDFLAGS) -o $(mos_elf) -N -T $(link_script) $(objects)
+	$(LD) $(LDFLAGS) -g -o $(mos_elf) -N -T $(link_script) $(objects)
 
 fs-image: $(target_dir) user
 	$(MAKE) --directory=fs image fs-files="$(addprefix ../, $(fs-files))"

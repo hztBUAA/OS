@@ -35,7 +35,10 @@ void schedule(int yield) {
 	 *   'TAILQ_FIRST', 'TAILQ_REMOVE', 'TAILQ_INSERT_TAIL'
 	 */
 	/* Exercise 3.12: Your code here. */
+<<<<<<< HEAD
 	
+=======
+>>>>>>> 9a355cf5a2fc316f9c2ed5b8c32a3b5e9791067d
 	if (yield || count == 0 || !e|| e->env_status != ENV_RUNNABLE)
 	{
 		if (curenv && curenv->env_status == ENV_RUNNABLE)
@@ -47,6 +50,7 @@ void schedule(int yield) {
 		/* code */
 		panic_on(TAILQ_EMPTY(&env_sched_list)== 1);//如果是空 错误出现
 		struct Env *new = TAILQ_FIRST(&env_sched_list);
+		//printk("schedule-debugk-1-1:newenv->id:%x,pri:%d,parentid:%x\n",new->env_id,new->env_pri,new->env_parent_id);
 		count = new->env_pri;
 		count--;
 		env_run(new);
@@ -55,8 +59,5 @@ void schedule(int yield) {
 		count--;
 		env_run(e);
 	}
-
-
-
 
 }

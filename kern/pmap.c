@@ -178,7 +178,6 @@ void page_free(struct Page *pp) {
 static int pgdir_walk(Pde *pgdir, u_long va, int create, Pte **ppte) {
 	Pde *pgdir_entryp;
 	struct Page *pp;
-
 	/* Step 1: Get the corresponding page directory entry. */
 	/* Exercise 2.6: Your code here. (1/3) */
 	pgdir_entryp = pgdir + PDX(va);//页目录表的正确页表项
@@ -201,9 +200,15 @@ static int pgdir_walk(Pde *pgdir, u_long va, int create, Pte **ppte) {
 			return 0;//这里不create 而一级页目录对应的页表项又无效，直接 *ppte=0的意义？
 		}
 	}
+	//printk("111111");
 	/* Step 3: Assign the kernel virtual address of the page table entry to '*ppte'. */
 	/* Exercise 2.6: Your code here. (3/3) */
+<<<<<<< HEAD
 	*ppte = (Pte*) (KADDR(PTE_ADDR(*pgdir_entryp)))  + PTX(va) ;//这里的之所以要KADDR是因为 指针 得是虚拟空间上的   ** PTE_ADDR是为了方便从一级页表项中（*pgdir_entryp中得到二级页表的地址 即取出前20位）再加上va本身对应的二级页表偏移量PTX(va) 此时这个二级页表项也许并不有效 因为可能还没映射？yes 所以才需要walk和map函数的结合使用 walk用来确定二级页表结构中的二级页表项是否存在(通过对一级页表项的值的有效性判定) map才是将这个二级页表项的内容变为映射物理页的地址（）此时这个二级页表项的值也是物理页的一个虚拟地址？ no 应该是里面前20位包含了PFN 可以用page页控制块和相关函数来找到物理页  啊 其实知道了物理页号 得到物理地址也只需向左位移12位再加页内偏移就好了 但这个得到的地址是真正的物理地址？
+=======
+	*ppte = (Pte*) KADDR(PTE_ADDR(*pgdir_entryp))  + PTX(va) ;//这里的之所以要KADDR是因为 指针 得是虚拟空间上的   ** PTE_ADDR是为了方便从一级页表项中（*pgdir_entryp中得到二级页表的地址 即取出前20位）再加上va本身对应的二级页表偏移量PTX(va) 此时这个二级页表项也许并不有效 因为可能还没映射？yes 所以才需要walk和map函数的结合使用 walk用来确定二级页表结构中的二级页表项是否存在(通过对一级页表项的值的有效性判定) map才是将这个二级页表项的内容变为映射物理页的地址（）此时这个二级页表项的值也是物理页的一个虚拟地址？ no 应该是里面前20位包含了PFN 可以用page页控制块和相关函数来找到物理页  啊 其实知道了物理页号 得到物理地址也只需向左位移12位再加页内偏移就好了 但这个得到的地址是真正的物理地址？
+	//printk("\n%x\n",*ppte);
+>>>>>>> 9a355cf5a2fc316f9c2ed5b8c32a3b5e9791067d
 	return 0;
 }
 
@@ -224,17 +229,24 @@ int page_insert(Pde *pgdir, u_int asid, struct Page *pp, u_long va, u_int perm) 
 
 	/* Step 1: Get corresponding page table entry. */
 	pgdir_walk(pgdir, va, 0, &pte);
+<<<<<<< HEAD
 
 	if (pte && ((*pte) & PTE_V)) {//pte表示这个页表项存在 （）表示这个页表项的有效
+=======
+	//printk("in page_insert:1-1\npte:%x\n*pte:%x\n",pte,*pte);
+	if (pte && (*pte & PTE_V)) {//pte表示这个页表项存在 （）表示这个页表项的有效
+>>>>>>> 9a355cf5a2fc316f9c2ed5b8c32a3b5e9791067d
 		if (pa2page(*pte) != pp) {//页表项显示的物理地址（即通过walk函数查找映射物理页）对应的物理页
+		//printk("va存在对应物理页映射 但不是这个pp\n");
 			page_remove(pgdir, asid, va);
 		} else {//?疑惑   为什么如果对应了就是这页物理地址时还需要操作 解答 原来是删除tlb中的项，这里为什么并没有去把tlb的表项也进行更新呢？
 			tlb_invalidate(asid, va);
+			//printk("va存在对应物理页映射 且是这个pp\n");
 			*pte = page2pa(pp) | perm | PTE_V;
 			return 0;
 		}
 	}
-
+	//printk("in page_insert:1-2\n");
 	/* Step 2: Flush TLB with 'tlb_invalidate'. */
 	/* Exercise 2.7: Your code here. (1/3) */
 	tlb_invalidate(asid,va);//为什么这个va本身没有对应的映射还需要flush？
@@ -242,12 +254,26 @@ int page_insert(Pde *pgdir, u_int asid, struct Page *pp, u_long va, u_int perm) 
 	/* If failed to create, return the error. */
 	/* Exercise 2.7: Your code here. (2/3) */
 	int ret = 0;
-	if((ret=pgdir_walk(pgdir,va,1,&pte))<0) return ret;
+	if((ret=pgdir_walk(pgdir,va,1,&pte))<0) return ret;//触发TLBmiss？
+	//printk("pte:%x",pte);
+	//printk("in page_insert:1-3\n");
 	/* Step 4: Insert the page to the page table entry with 'perm | PTE_V' and increase its
 	 * 'pp_ref'. */
 	/* Exercise 2.7: Your code here. (3/3) */
 	*pte = page2pa(pp) | perm | PTE_V;
-	pp->pp_ref++;
+	//if (asid == 4097)
+	//{
+	//	printk("\ndebugk\n");
+	//}
+	// if (ret == 0)
+	// {
+	 	pp->pp_ref++;
+	// }
+	
+	
+	
+	
+	//printk("in page_insert:1-4\n");
 	return 0;
 }
 

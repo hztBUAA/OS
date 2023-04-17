@@ -41,6 +41,7 @@ int main() {
 	if (r == 0) {
 		debugf("syscall_mem_alloc_ok_6\n");
 	} else {
+		//printk();
 		user_halt("syscall_mem_alloc\n");
 	}
 
