@@ -188,7 +188,7 @@ static int pgdir_walk(Pde *pgdir, u_long va, int create, Pte **ppte) {
 	 * If failed to allocate a new page (out of memory), return the error. */
 	/* Exercise 2.6: Your code here. (2/3) */
 	int ret = 0;
-	if(!(*pgdir_entryp & PTE_V)) {//这里要不要先判断指针的是否是有效的
+	if(!((*pgdir_entryp) & PTE_V)) {//这里要不要先判断指针的是否是有效的
 		if(create) {
 			if((ret = page_alloc(&pp)) < 0 )    {
 				return ret;
@@ -203,7 +203,7 @@ static int pgdir_walk(Pde *pgdir, u_long va, int create, Pte **ppte) {
 	}
 	/* Step 3: Assign the kernel virtual address of the page table entry to '*ppte'. */
 	/* Exercise 2.6: Your code here. (3/3) */
-	*ppte = (Pte*) KADDR(PTE_ADDR(*pgdir_entryp))  + PTX(va) ;//这里的之所以要KADDR是因为 指针 得是虚拟空间上的   ** PTE_ADDR是为了方便从一级页表项中（*pgdir_entryp中得到二级页表的地址 即取出前20位）再加上va本身对应的二级页表偏移量PTX(va) 此时这个二级页表项也许并不有效 因为可能还没映射？yes 所以才需要walk和map函数的结合使用 walk用来确定二级页表结构中的二级页表项是否存在(通过对一级页表项的值的有效性判定) map才是将这个二级页表项的内容变为映射物理页的地址（）此时这个二级页表项的值也是物理页的一个虚拟地址？ no 应该是里面前20位包含了PFN 可以用page页控制块和相关函数来找到物理页  啊 其实知道了物理页号 得到物理地址也只需向左位移12位再加页内偏移就好了 但这个得到的地址是真正的物理地址？
+	*ppte = (Pte*) (KADDR(PTE_ADDR(*pgdir_entryp)))  + PTX(va) ;//这里的之所以要KADDR是因为 指针 得是虚拟空间上的   ** PTE_ADDR是为了方便从一级页表项中（*pgdir_entryp中得到二级页表的地址 即取出前20位）再加上va本身对应的二级页表偏移量PTX(va) 此时这个二级页表项也许并不有效 因为可能还没映射？yes 所以才需要walk和map函数的结合使用 walk用来确定二级页表结构中的二级页表项是否存在(通过对一级页表项的值的有效性判定) map才是将这个二级页表项的内容变为映射物理页的地址（）此时这个二级页表项的值也是物理页的一个虚拟地址？ no 应该是里面前20位包含了PFN 可以用page页控制块和相关函数来找到物理页  啊 其实知道了物理页号 得到物理地址也只需向左位移12位再加页内偏移就好了 但这个得到的地址是真正的物理地址？
 	return 0;
 }
 
@@ -225,7 +225,7 @@ int page_insert(Pde *pgdir, u_int asid, struct Page *pp, u_long va, u_int perm) 
 	/* Step 1: Get corresponding page table entry. */
 	pgdir_walk(pgdir, va, 0, &pte);
 
-	if (pte && (*pte & PTE_V)) {//pte表示这个页表项存在 （）表示这个页表项的有效
+	if (pte && ((*pte) & PTE_V)) {//pte表示这个页表项存在 （）表示这个页表项的有效
 		if (pa2page(*pte) != pp) {//页表项显示的物理地址（即通过walk函数查找映射物理页）对应的物理页
 			page_remove(pgdir, asid, va);
 		} else {//?疑惑   为什么如果对应了就是这页物理地址时还需要操作 解答 原来是删除tlb中的项，这里为什么并没有去把tlb的表项也进行更新呢？
@@ -264,7 +264,7 @@ struct Page *page_lookup(Pde *pgdir, u_long va, Pte **ppte) {
 	pgdir_walk(pgdir, va, 0, &pte);
 
 	/* Hint: Check if the page table entry doesn't exist or is not valid. */
-	if (pte == NULL || (*pte & PTE_V) == 0) {
+	if (pte == NULL || ((*pte) & PTE_V) == 0) {
 		return NULL;
 	}
 

@@ -24,7 +24,7 @@ LEAF(tlb_out)
 
 NO_SUCH_ENTRY:
 	mtc0    t0, CP0_ENTRYHI
-	j       ra
+	jr       ra
 END(tlb_out)
 
 .data
