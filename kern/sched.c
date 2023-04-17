@@ -36,7 +36,7 @@ void schedule(int yield) {
 	 */
 	/* Exercise 3.12: Your code here. */
 	
-	if (yield || count == 0 || !e|| e->env_status == ENV_NOT_RUNNABLE)
+	if (yield || count == 0 || !e|| e->env_status != ENV_RUNNABLE)
 	{
 		if (curenv && curenv->env_status == ENV_RUNNABLE)
 		{

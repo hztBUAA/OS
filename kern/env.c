@@ -288,7 +288,7 @@ int env_alloc(struct Env **new, u_int parent_id) {
 	 e->env_id = mkenvid(e);
 	 e->env_parent_id= parent_id;
 	 asid_alloc(&(e->env_asid));
-	
+	e->env_ov_cnt = 0;
 	e->env_user_tlb_mod_entry = 0; // for lab4
 	e->env_runs = 0;	       // for lab6
 	/* Exercise 3.4: Your code here. (3/4) */
@@ -476,8 +476,7 @@ static inline void pre_env_run(struct Env *e) {
 	struct Trapframe *tf = (struct Trapframe *)KSTACKTOP - 1;
 	u_int epc = tf->cp0_epc;
 	if (epc == MOS_SCHED_END_PC) {
-		printk("env %08x reached end pc: 0x%08x, $v0=0x%08x\n", e->env_id, epc,
-		       tf->regs[2]);
+		printk("env %08x reached end pc: 0x%08x, $v0=0x%08x, env_ov_cnt=%d\n", e->env_id, epc, tf->regs[2], e->env_ov_cnt);
 		env_destroy(e);
 		schedule(0);
 	}
