@@ -16,12 +16,13 @@
 static void __attribute__((noreturn)) cow_entry (struct Trapframe *tf) {
 	u_int va = tf->cp0_badvaddr;
 	u_int perm;
-	debugf("debug-cow_entry-1-1\n");
+	//debugf("debug-cow_entry-1-1\n");
 	/* Step 1: Find the 'perm' in which the faulting address 'va' is mapped. */
 	/* Hint: Use 'vpt' and 'VPN' to find the page table entry. If the 'perm' doesn't have
 	 * 'PTE_COW', launch a 'user_panic'. */
 	/* Exercise 4.13: Your code here. (1/6) */
-	perm = (vpt)[VPN(va)] & 0xfff;//为什么不能用page_lookup?
+	perm = (vpt[VPN(va)] & 0xfff);
+	//perm = (*((Pte *)((vpt)[VPN(va)])) & 0xfff);//为什么不能用page_lookup?
 	//debugf("debug-cow_entry-1-2\n");
 	if((perm&PTE_COW) == 0){
 		user_panic("perm not PTE_COW");
@@ -44,7 +45,7 @@ static void __attribute__((noreturn)) cow_entry (struct Trapframe *tf) {
 	// Step 6: Unmap the page at 'UCOW'.
 	/* Exercise 4.13: Your code here. (6/6) */
 	syscall_mem_unmap(0, UCOW);
-	debugf("debug-cow_entry-1-3\n");
+	//debugf("debug-cow_entry-1-3\n");
 	// Step 7: Return to the faulting routine.
 	int r = syscall_set_trapframe(0, tf);
 	user_panic("syscall_set_trapframe returned %d", r);
@@ -80,7 +81,9 @@ static void duppage(u_int envid, u_int vpn) {
 	/* Step 1: Get the permission of the page. */
 	/* Hint: Use 'vpt' to find the page table entry. */
 	/* Exercise 4.10: Your code here. (1/2) */
-	perm = (vpt)[vpn] & 0xfff;
+	//perm = *((Pte *)((vpt)[VPN(va)]))
+	//perm = *((Pde *)((vpt)[vpn])) & 0xfff;
+	perm = (vpt[vpn] & 0xfff);
 	addr = (vpn<<PGSHIFT);
 	/* Step 2: If the page is writable, and not shared with children, and not marked as COW yet,
 	 * then map it as copy-on-write, both in the parent (0) and the child (envid). */
@@ -88,7 +91,7 @@ static void duppage(u_int envid, u_int vpn) {
 	 */
 	/* Exercise 4.10: Your code here. (2/2) */
 	if ((perm&PTE_D)!=0 && (perm&PTE_LIBRARY)==0 && (perm&PTE_COW)==0){
-		debugf("fork-debug-1-1\n");
+		//debugf("fork-debug-1-1\n");
 		perm |= PTE_COW;
 		perm = perm-PTE_D;
 		syscall_mem_map(0, addr, envid, addr,perm);
@@ -134,7 +137,13 @@ int fork(void) {
 	/* Exercise 4.15: Your code here. (1/2) */
 	for (i = 0; i < VPN(USTACKTOP); ++i) {
 		//判断对应第i页的页表项有效性（页在有效的前提下才需要从父进程继承到子进程）  前者是一级页表项  其实只需要后者就可以了？
-        if (((vpd)[i >> 10] & PTE_V) && ((vpt)[i] & PTE_V)) {
+        // if ((*((Pde*)((vpd)[i >> 10])) & PTE_V) && (*((Pte *)((vpt)[i])) & PTE_V)) {
+        //     duppage(child, i);
+        // }
+		// if ((vpd[i>>10] & PTE_V) && (vpt[i] & PTE_V)) {
+        //     duppage(child, i);
+        // }
+		if (((Pte *)(vpt))[i] & PTE_V) {
             duppage(child, i);
         }
     }

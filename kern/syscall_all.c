@@ -164,6 +164,7 @@ int sys_mem_alloc(u_int envid, u_int va, u_int perm) {
 // 所以这⾥在进⾏ id<->进程 的对应时，检查位的参数要置1
 	if (ret < 0)
 	{
+		//printk("2:no exist envid");
 		return ret;
 	}
 
@@ -209,6 +210,7 @@ int sys_mem_map(u_int srcid, u_int srcva, u_int dstid, u_int dstva, u_int perm) 
 	
 	if (is_illegal_va(srcva) || is_illegal_va(dstva))
 	{
+		//printk("illegal addr\n");
 		return -E_INVAL;
 	}
 	//printk("in sys_mem_map:1-1\n");
@@ -217,6 +219,7 @@ int sys_mem_map(u_int srcid, u_int srcva, u_int dstid, u_int dstva, u_int perm) 
 	ret = envid2env(srcid,&srcenv,1);  // perm?
 	if (ret < 0)
 	{
+		//printk("no exist srcid\n");
 		return ret;
 	}
 	
@@ -225,6 +228,7 @@ int sys_mem_map(u_int srcid, u_int srcva, u_int dstid, u_int dstva, u_int perm) 
 	ret = envid2env(dstid,&dstenv,1);
 	if (ret < 0)
 	{
+		//printk("no exist dstid\n");
 		return ret;
 	}
 	/* Step 4: Find the physical page mapped at 'srcva' in the address space of 'srcid'. */
@@ -243,7 +247,7 @@ int sys_mem_map(u_int srcid, u_int srcva, u_int dstid, u_int dstva, u_int perm) 
 	// 	/* code */
 	// }
 	
-	printk("in sys_mem_map:1-2\ndstva:%xperm:%d,dstenv->env_asid:%x,pgdir:%x\n",dstva,perm,dstenv->env_asid,dstenv->env_pgdir);
+	//printk("in sys_mem_map:1-2\ndstva:%xperm:%d,dstenv->env_asid:%x,pgdir:%x\n",dstva,perm,dstenv->env_asid,dstenv->env_pgdir);
 	/* Step 5: Map the physical page at 'dstva' in the address space of 'dstid'. */
 	return page_insert(dstenv->env_pgdir, dstenv->env_asid, pp, round_dstva, perm);
 }
