@@ -21,7 +21,7 @@ static void __attribute__((noreturn)) cow_entry(struct Trapframe *tf) {
 	/* Hint: Use 'vpt' and 'VPN' to find the page table entry. If the 'perm' doesn't have
 	 * 'PTE_COW', launch a 'user_panic'. */
 	/* Exercise 4.13: Your code here. (1/6) */
-	perm = (vpt[VPN(va)] & 0xfff);
+	perm = (vpt[VPN(va)] & 0xFFF);
 	if((perm&PTE_COW) == 0){
 		user_panic("perm not PTE_COW");
 	}
@@ -80,19 +80,25 @@ static void duppage(u_int envid, u_int vpn) {
 	/* Hint: Use 'vpt' to find the page table entry. */
 	/* Exercise 4.10: Your code here. (1/2) */
 
-	perm = (vpt[vpn] & 0xfff);
+	perm = (vpt[vpn] & 0xFFF);
+	//debugf("in duppage,vpt[vpn]:%x,*(vpt[vpn]:%x),perm:%x\n",vpt[vpn],*(Pte*)(vpt[vpn]),perm);
 	addr = (vpn<<PGSHIFT);
 	/* Step 2: If the page is writable, and not shared with children, and not marked as COW yet,
 	 * then map it as copy-on-write, both in the parent (0) and the child (envid). */
 	/* Hint: The page should be first mapped to the child before remapped in the parent. (Why?)
 	 */
 	/* Exercise 4.10: Your code here. (2/2) */
+	//
 	if ((perm&PTE_D)!=0 && (perm&PTE_LIBRARY)==0 && (perm&PTE_COW)==0){
 		//debugf("fork-debug-1-1\n");
 		perm |= PTE_COW;
 		perm = perm-PTE_D;
 		syscall_mem_map(0, addr, envid, addr,perm);
 		syscall_mem_map(0, addr, 0, addr, perm);
+	}
+	else{
+		syscall_mem_map(0, addr, envid, addr,perm);
+		//syscall_mem_map(0, addr, 0, addr, perm);
 	}
 
 
