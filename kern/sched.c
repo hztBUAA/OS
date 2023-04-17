@@ -54,7 +54,7 @@ void schedule(int yield) {
 		}
 	}
 
-	if (yield || count == 0 || !e|| e->env_status == ENV_NOT_RUNNABLE)
+	if (yield || count == 0 || !e|| e->env_status != ENV_RUNNABLE)
 	{
 		if (curenv && curenv->env_status == ENV_RUNNABLE)
 		{
@@ -87,6 +87,7 @@ void schedule(int yield) {
 		{
 			if(var->env_user == id){
 				new = var;
+				break;
 			}
 			
 		}
