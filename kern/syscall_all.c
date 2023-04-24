@@ -8,7 +8,16 @@
 #include <string.h>
 extern struct Env *curenv;
 
-
+static inline int is_illegal_va(u_long va) {
+         return va < UTEMP || va >= UTOP;
+ }
+ 
+ static inline int is_illegal_va_range(u_long va, u_int len) {
+         if (len == 0) {
+                 return 0;
+         }
+         return va + len < va || va < UTEMP || va + len > UTOP;
+ }
 void sys_set_gid(u_int gid){
 	curenv->env_gid = gid;
 	return;
@@ -153,16 +162,6 @@ int sys_set_tlb_mod_entry(u_int envid, u_int func) {
 /* Overview:
  *   Check 'va' is illegal or not, according to include/mmu.h
  */
-static inline int is_illegal_va(u_long va) {
-	return va < UTEMP || va >= UTOP;
-}
-
-static inline int is_illegal_va_range(u_long va, u_int len) {
-	if (len == 0) {
-		return 0;
-	}
-	return va + len < va || va < UTEMP || va + len > UTOP;
-}
 
 /* Overview:
  *   Allocate a physical page and map 'va' to it with 'perm' in the address space of 'envid'.
