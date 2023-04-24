@@ -10,7 +10,7 @@ extern struct Env *curenv;
 
 
 void sys_set_gid(u_int gid){
-	currenv->env_gid = gid;
+	curenv->env_gid = gid;
 	return;
 
 }
@@ -25,7 +25,7 @@ int sys_ipc_try_group_send(u_int whom, u_int val, const void *srcva, u_int perm)
 	if(e->env_ipc_recving!=1){
                 return -E_IPC_NOT_RECV;
         }
-	if(e->env_gid != currenv->env_gid){
+	if(e->env_gid != curenv->env_gid){
 		return -E_IPC_NOT_GROUP;
 	}	
 	e->env_ipc_value = val;
@@ -200,11 +200,28 @@ int sys_mem_alloc(u_int envid, u_int va, u_int perm) {
 	{
 		return ret;
 	}
+	/* Step 3: Allocate a physical page using 'page_alloc'. */
+	/* Exercise 4.4: Your code here. (3/3) */
+	ret = page_alloc(&pp);
+	if (ret < 0)
+	{
+		return ret;
+	}
+	/* Step 4: Map the allocated page at 'va' with permission 'perm' using 'page_insert'. */
+	return page_insert(env->env_pgdir, env->env_asid, pp, va, perm);
+}
+int sys_mem_map(u_int srcid, u_int srcva, u_int dstid, u_int dstva, u_int perm) {
+	struct Env *srcenv;
+	struct Env *dstenv;
+	u_int round_srcva, round_dstva;
+	struct Page *pp;
+	Pte *ppte;
+	int ret =0;
+
 	if (is_illegal_va(srcva) || is_illegal_va(dstva))
 	{
-	//printk("in sys_mem_map:1-1\n");
-	/* Step 2: Convert the 'srcid' to its corresponding 'struct Env *' using 'envid2env'. */
-	/* Exercise 4.5: Your code here. (2/4) */
+		return -E_INVAL;
+	}
 	ret = envid2env(srcid,&srcenv,1);  // perm?
 	if (ret < 0)
 	{
