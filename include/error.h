@@ -1,6 +1,6 @@
 #ifndef _ERROR_H_
 #define _ERROR_H_
-
+#define E_IPC_NOT_GROUP 14
 // OS error codes.
 
 // Unspecified or unknown problem

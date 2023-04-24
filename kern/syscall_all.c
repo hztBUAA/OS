@@ -8,6 +8,48 @@
 #include <string.h>
 extern struct Env *curenv;
 
+
+void sys_set_gid(u_int gid){
+	currenv->env_gid = gid;
+	return;
+
+}
+int sys_ipc_try_group_send(u_int whom, u_int val, const void *srcva, u_int perm){
+	struct Env *e;
+	 struct Page *p;
+ 	
+         if(srcva!=0&&is_illegal_va(srcva)){
+		return -E_INVAL;
+         }
+	envid2env(whom, &e, 0);
+	if(e->env_ipc_recving!=1){
+                return -E_IPC_NOT_RECV;
+        }
+	if(e->env_gid != currenv->env_gid){
+		return -E_IPC_NOT_GROUP;
+	}	
+	e->env_ipc_value = val;
+	e->env_ipc_from = curenv->env_id;
+	e->env_ipc_perm = PTE_V | perm;
+	e->env_ipc_recving = 0;
+	e->env_status = ENV_RUNNABLE;
+         TAILQ_INSERT_TAIL(&env_sched_list,e,env_sched_link);
+	 if (srcva != 0) {
+	 	p = page_lookup(curenv->env_pgdir,srcva,NULL);
+             	if(p == NULL){
+                         return -E_INVAL;
+                }
+                 return page_insert(e->env_pgdir, e->env_asid,p,e->env_ipc_dstva,perm);
+	 }
+	  return 0;
+}
+
+
+
+
+
+
+
 /* Overview:
  * 	This function is used to print a character on screen.
  *
@@ -632,6 +674,9 @@ void *syscall_table[MAX_SYSNO] = {
     [SYS_cgetc] = sys_cgetc,
     [SYS_write_dev] = sys_write_dev,
     [SYS_read_dev] = sys_read_dev,
+	[SYS_set_gid] = sys_set_gid,
+	[SYS_ipc_group_send] = sys_ipc_group_send,
+
 };
 
 /* Overview:

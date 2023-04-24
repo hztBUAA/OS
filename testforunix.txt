@@ -1,10 +1,90 @@
-hzt
-hzt
-hzt pjq 
-hzt pjq
 
-hzt love 
-hzt love 
-hzt love  pjq 
-hzt love  pjq
+// 若锁处于空闲状态，该函数设置锁由当前进程持有，并返回 0；否则，该函数返回 -1。
+int sys_try_acquire_console(int sysno, u_int envid, u_int value, u_int srcva, u_int perm) {
+    if (lock != 0)
+        return -1;
+    lock = curenv->env_id;
+    return 0;
+}
 
+int sys_release_console(int sysno, u_int envid, u_int value, u_int srcva, u_int perm) {
+    if (lock != curenv->env_id)
+        return -1;
+    lock = 0;
+    return 0;
+}
+
+
+
+
+在通过 syscall 指令陷入内核态后，处理器将 PC 寄存器指向一个内核中固定的异常处
+理入口:exc_gen_entry(in /kernel.lds),这个函数会识别异常的exception的种类（是系统调用还是中断还是tlb啥的....）。在异常向量表（即exception_handlers数组 in traps.c）中，系统调用这一异常类型的处理入口为 handle_sys 函数(8号)，它是在
+kern/genex.S 中定义的对 do_syscall 函数的包装（handle_*函数封装do_*函数），我们需要首先在 kern/syscall_all.c 中
+实现 do_syscall 函数；do_syscall函数再继续细分syscall系统调用的具体类型（是ipc_send 还是 mem_map and etc）
+
+
+
+
+envid  asid
+
+define
+int page_insert(Pde *pgdir, u_int asid, struct Page *pp, u_long va, u_int perm);
+struct Page *page_lookup(Pde *pgdir, u_long va, Pte **ppte);
+static int pgdir_walk(Pde *pgdir, u_long va, int create, Pte **ppte)
+int envid2env(u_int envid, struct Env **penv, int checkperm);
+struct Env {
+	struct Trapframe env_tf;  // Saved registers
+	LIST_ENTRY(Env) env_link; // Free list
+	u_int env_id;		  // Unique environment identifier
+	u_int env_asid;		  // ASID
+	u_int env_parent_id;	  // env_id of this env's parent
+	u_int env_status;	  // Status of the environment
+	Pde *env_pgdir;		  // Kernel virtual address of page dir
+	TAILQ_ENTRY(Env) env_sched_link;
+	u_int env_pri;
+	// Lab 4 IPC
+	u_int env_ipc_value;   // data value sent to us
+	u_int env_ipc_from;    // envid of the sender
+	u_int env_ipc_recving; // env is blocked receiving
+	u_int env_ipc_dstva;   // va at which to map received page
+	u_int env_ipc_perm;    // perm of page mapping received
+
+	// Lab 4 fault handling
+	u_int env_user_tlb_mod_entry; // user tlb mod handler
+
+	// Lab 6 scheduler counts
+	u_int env_runs; // number of times been env_run'ed
+};
+
+
+
+
+/* Overview:
+ *   Wait for a message (a value, together with a page if 'dstva' is not 0) from other envs.
+ *   'curenv' is blocked until a message is sent.
+ *
+ * Post-Condition:
+ *   Return 0 on success.
+ *   Return -E_INVAL: 'dstva' is neither 0 nor a legal address.
+ */
+int sys_ipc_recv(u_int dstva)
+
+
+
+/* Overview:
+ *   Try to send a 'value' (together with a page if 'srcva' is not 0) to the target env 'envid'.
+ *
+ * Post-Condition:
+ *   Return 0 on success, and the target env is updated as follows:
+ *   - 'env_ipc_recving' is set to 0 to block future sends.
+ *   - 'env_ipc_from' is set to the sender's envid.
+ *   - 'env_ipc_value' is set to the 'value'.
+ *   - 'env_status' is set to 'ENV_RUNNABLE' again to recover from 'ipc_recv'.
+ *   - if 'srcva' is not NULL, map 'env_ipc_dstva' to the same page mapped at 'srcva' in 'curenv'
+ *     with 'perm'.
+ *
+ *   Return -E_IPC_NOT_RECV if the target has not been waiting for an IPC message with
+ *   'sys_ipc_recv'.
+ *   Return the original error when underlying calls fail.
+ */
+int sys_ipc_try_send(u_int envid, u_int value, u_int srcva, u_int perm)
