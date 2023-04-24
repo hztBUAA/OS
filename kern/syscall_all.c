@@ -190,145 +190,41 @@ int sys_mem_alloc(u_int envid, u_int va, u_int perm) {
 	{
 		return -E_INVAL;
 	}
-<<<<<<< HEAD
 
-=======
-	
->>>>>>> 9a355cf5a2fc316f9c2ed5b8c32a3b5e9791067d
 	/* Step 2: Convert the envid to its corresponding 'struct Env *' using 'envid2env'. */
 	/* Hint: **Always** validate the permission in syscalls!  */
 	//that means checkperm =1    
 	/* Exercise 4.4: Your code here. (2/3) */
-<<<<<<< HEAD
 	ret = envid2env(envid, &env, 1);
 	if (ret < 0)
 	{
 		return ret;
 	}
-=======
-							//if ((perm&PTE_V) == 0 || (perm & PTE_COW)!= 0)//
-							//{
-								//printk("lala");
-							//	return -E_INVAL;
-							//}
-	
-	ret = envid2env(envid, &env, 1);//1表示checkperm set
-	// 进程只可以修改他⾃⼰的进程空间和直接⼦进程的进程空间。
-// 所以这⾥在进⾏ id<->进程 的对应时，检查位的参数要置1
-	if (ret < 0)
-	{
-		//printk("2:no exist envid");
-		return ret;
-	}
-
-	
->>>>>>> 9a355cf5a2fc316f9c2ed5b8c32a3b5e9791067d
-	/* Step 3: Allocate a physical page using 'page_alloc'. */
-	/* Exercise 4.4: Your code here. (3/3) */
-	ret = page_alloc(&pp);
-	if (ret < 0)
-	{
-		return ret;
-	}
-	/* Step 4: Map the allocated page at 'va' with permission 'perm' using 'page_insert'. */
-	return page_insert(env->env_pgdir, env->env_asid, pp, va, perm);
-}
-
-/* Overview:
- *   Find the physical page mapped at 'srcva' in the address space of env 'srcid', and map 'dstid''s
- *   'dstva' to it with 'perm'.
- *
- * Post-Condition:
- *   Return 0 on success.
- *   Return -E_BAD_ENV: 'checkperm' of 'envid2env' fails for 'srcid' or 'dstid'.
- *   Return -E_INVAL: 'srcva' or 'dstva' is illegal, or 'srcva' is unmapped in 'srcid'.
- *   Return the original error: underlying calls fail.
- *
- * Hint:
- *   You may want to use the following functions:
- *   'envid2env', 'page_lookup', 'page_insert'
- */
-int sys_mem_map(u_int srcid, u_int srcva, u_int dstid, u_int dstva, u_int perm) {
-	struct Env *srcenv;
-	struct Env *dstenv;
-	u_int round_srcva, round_dstva;
-	struct Page *pp;
-	Pte *ppte;
-	int ret =0;
-<<<<<<< HEAD
-	/* Step 1: Check if 'srcva' and 'dstva' are legal user virtual addresses using
-	 * 'is_illegal_va'. */
-	/* Exercise 4.5: Your code here. (1/4) */
-
 	if (is_illegal_va(srcva) || is_illegal_va(dstva))
 	{
-=======
-	//printk("1-4\n");
-	/* Step 1: Check if 'srcva' and 'dstva' are legal user virtual addresses using
-	 * 'is_illegal_va'. */
-	/* Exercise 4.5: Your code here. (1/4) */
-	round_srcva = ROUNDDOWN(srcva, BY2PG);
-    round_dstva = ROUNDDOWN(dstva, BY2PG);
-	
-	if (is_illegal_va(srcva) || is_illegal_va(dstva))
-	{
-		//printk("illegal addr\n");
->>>>>>> 9a355cf5a2fc316f9c2ed5b8c32a3b5e9791067d
-		return -E_INVAL;
-	}
 	//printk("in sys_mem_map:1-1\n");
 	/* Step 2: Convert the 'srcid' to its corresponding 'struct Env *' using 'envid2env'. */
 	/* Exercise 4.5: Your code here. (2/4) */
 	ret = envid2env(srcid,&srcenv,1);  // perm?
 	if (ret < 0)
 	{
-<<<<<<< HEAD
 		return ret;
 	}
-
-=======
-		//printk("no exist srcid\n");
-		return ret;
-	}
-	
->>>>>>> 9a355cf5a2fc316f9c2ed5b8c32a3b5e9791067d
 	/* Step 3: Convert the 'dstid' to its corresponding 'struct Env *' using 'envid2env'. */
 	/* Exercise 4.5: Your code here. (3/4) */
 	ret = envid2env(dstid,&dstenv,1);
 	if (ret < 0)
 	{
-<<<<<<< HEAD
-=======
-		//printk("no exist dstid\n");
->>>>>>> 9a355cf5a2fc316f9c2ed5b8c32a3b5e9791067d
 		return ret;
 	}
 	/* Step 4: Find the physical page mapped at 'srcva' in the address space of 'srcid'. */
 	/* Return -E_INVAL if 'srcva' is not mapped. */
 	/* Exercise 4.5: Your code here. (4/4) */
-<<<<<<< HEAD
 	pp = page_lookup(srcenv->env_pgdir,srcva,&ppte);
-=======
-	pp = page_lookup(srcenv->env_pgdir,round_srcva,&ppte);
->>>>>>> 9a355cf5a2fc316f9c2ed5b8c32a3b5e9791067d
 	if (pp ==NULL) //警惕打成= 号 把pp赋值成null  没好果子吃
 	{
 		return -E_INVAL;
 	}
-<<<<<<< HEAD
-
-
-=======
-	// if (srcid == 0x800 && dstid == 4097)
-	// {
-	// 	printk("pp_ref:%d",pp->pp_ref);
-	// 	printk("\nq-1\n");
-	// 	printk("dstenv->pgdir:%x,dstenv->envid:%x,dstva:%x,ppn:%d\n",dstenv->env_pgdir,dstid,dstva,(u_int)(pp-pages));
-	// 	/* code */
-	// }
-	
-	//printk("in sys_mem_map:1-2\ndstva:%xperm:%d,dstenv->env_asid:%x,pgdir:%x\n",dstva,perm,dstenv->env_asid,dstenv->env_pgdir);
->>>>>>> 9a355cf5a2fc316f9c2ed5b8c32a3b5e9791067d
 	/* Step 5: Map the physical page at 'dstva' in the address space of 'dstid'. */
 	return page_insert(dstenv->env_pgdir, dstenv->env_asid, pp, round_dstva, perm);
 }
@@ -354,19 +250,10 @@ int sys_mem_unmap(u_int envid, u_int va) {
 	/* Step 2: Convert the envid to its corresponding 'struct Env *' using 'envid2env'. */
 	/* Exercise 4.6: Your code here. (2/2) */
 	ret = envid2env(envid, &e, 1);//perm?
-<<<<<<< HEAD
 	if (ret < 0)
 	{
 		return ret;
 	}
-
-=======
-	if (ret!=0)
-	{
-		return ret;
-	}
-	
->>>>>>> 9a355cf5a2fc316f9c2ed5b8c32a3b5e9791067d
 	/* Step 3: Unmap the physical page at 'va' in the address space of 'envid'. */
 	page_remove(e->env_pgdir, e->env_asid, va);
 	return 0;
@@ -392,19 +279,11 @@ int sys_exofork(void) {
 	/* Step 1: Allocate a new env using 'env_alloc'. */
 	/* Exercise 4.9: Your code here. (1/4) */
 	env_alloc(&e,curenv->env_id);
-<<<<<<< HEAD
-=======
-	//printk("sys_exofork-debug-1-2\n");
->>>>>>> 9a355cf5a2fc316f9c2ed5b8c32a3b5e9791067d
 	/* Step 2: Copy the current Trapframe below 'KSTACKTOP' to the new env's 'env_tf'. */
 	/* Exercise 4.9: Your code here. (2/4) */
 	memcpy((void*)(&(e->env_tf)),
 	(void*)KSTACKTOP-sizeof(struct Trapframe),
 	sizeof(struct Trapframe));
-<<<<<<< HEAD
-=======
-	//printk("sys_exofork-debug-1-3\n");
->>>>>>> 9a355cf5a2fc316f9c2ed5b8c32a3b5e9791067d
 	/* Step 3: Set the new env's 'env_tf.regs[2]' to 0 to indicate the return value in child. */
 	/* Exercise 4.9: Your code here. (3/4) */
 	e->env_tf.regs[2] = 0;
@@ -437,30 +316,16 @@ int sys_set_env_status(u_int envid, u_int status) {
 	{
 		return -E_INVAL;
 	}
-<<<<<<< HEAD
-
-=======
-	
->>>>>>> 9a355cf5a2fc316f9c2ed5b8c32a3b5e9791067d
 	/* Step 2: Convert the envid to its corresponding 'struct Env *' using 'envid2env'. */
 	/* Exercise 4.14: Your code here. (2/3) */
 	envid2env(envid, &env, 1);
 	/* Step 3: Update 'env_sched_list' if the 'env_status' of 'env' is being changed. */
 	/* Exercise 4.14: Your code here. (3/3) */
-<<<<<<< HEAD
 	if (env->env_status!=ENV_RUNNABLE	&& status == ENV_RUNNABLE)
 	{
 		TAILQ_INSERT_TAIL(&env_sched_list, env, env_sched_link);	
 	}
 	if (status!=ENV_RUNNABLE	&& env->env_status == ENV_RUNNABLE)
-=======
-	if (env->env_status==ENV_NOT_RUNNABLE	&& status == ENV_RUNNABLE)
-	{
-		//printk("sys_set_env_status-debug-child-envid:%x",envid);
-		TAILQ_INSERT_TAIL(&env_sched_list, env, env_sched_link);	
-	}
-	if (status==ENV_NOT_RUNNABLE	&& env->env_status == ENV_RUNNABLE)
->>>>>>> 9a355cf5a2fc316f9c2ed5b8c32a3b5e9791067d
 	{
 		TAILQ_REMOVE(&env_sched_list, env, env_sched_link);	
 	}
@@ -675,7 +540,7 @@ void *syscall_table[MAX_SYSNO] = {
     [SYS_write_dev] = sys_write_dev,
     [SYS_read_dev] = sys_read_dev,
 	[SYS_set_gid] = sys_set_gid,
-	[SYS_ipc_group_send] = sys_ipc_group_send,
+	[SYS_ipc_try_group_send] = sys_ipc_try_group_send,
 
 };
 
@@ -702,10 +567,6 @@ void do_syscall(struct Trapframe *tf) {
 	tf->cp0_epc += 4;
 	/* Step 2: Use 'sysno' to get 'func' from 'syscall_table'. */
 	/* Exercise 4.2: Your code here. (2/4) */
-<<<<<<< HEAD
-=======
-	//关于函数指针的用法？
->>>>>>> 9a355cf5a2fc316f9c2ed5b8c32a3b5e9791067d
 	func = syscall_table[sysno];
 	/* Step 3: First 3 args are stored in $a1, $a2, $a3. */
 	u_int arg1 = tf->regs[5];
@@ -715,11 +576,7 @@ void do_syscall(struct Trapframe *tf) {
 	/* Step 4: Last 2 args are stored in stack at [$sp + 16 bytes], [$sp + 20 bytes]. */
 	u_int arg4, arg5;
 	/* Exercise 4.2: Your code here. (3/4) */
-<<<<<<< HEAD
 	arg4 = *((u_int *)(tf->regs[29] + 16));
-=======
-	arg4 = *((u_int *)(tf->regs[29] + 16));//?
->>>>>>> 9a355cf5a2fc316f9c2ed5b8c32a3b5e9791067d
 	arg5 = *((u_int *)(tf->regs[29] + 20));
 	/* Step 5: Invoke 'func' with retrieved arguments and store its return value to $v0 in 'tf'.
 	 */

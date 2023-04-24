@@ -21,24 +21,24 @@ static void __attribute__((noreturn)) cow_entry (struct Trapframe *tf) {
 	/* Hint: Use 'vpt' and 'VPN' to find the page table entry. If the 'perm' doesn't have
 	 * 'PTE_COW', launch a 'user_panic'. */
 	/* Exercise 4.13: Your code here. (1/6) */
-<<<<<<< HEAD
+
 	perm = (vpt[VPN(va)] & 0xFFF);
-=======
-	perm = (vpt[VPN(va)] & 0xfff);
-	//perm = (*((Pte *)((vpt)[VPN(va)])) & 0xfff);//为什么不能用page_lookup?
-	//debugf("debug-cow_entry-1-2\n");
->>>>>>> 9a355cf5a2fc316f9c2ed5b8c32a3b5e9791067d
+
+
+
+
+
 	if((perm&PTE_COW) == 0){
 		user_panic("perm not PTE_COW");
 	}
 	/* Step 2: Remove 'PTE_COW' from the 'perm', and add 'PTE_D' to it. */
 	/* Exercise 4.13: Your code here. (2/6) */
 	perm = perm - PTE_COW;
-<<<<<<< HEAD
+
 	perm = perm|PTE_D;
-=======
-	perm = perm|PTE_D;////
->>>>>>> 9a355cf5a2fc316f9c2ed5b8c32a3b5e9791067d
+
+
+
 	/* Step 3: Allocate a new page at 'UCOW'. */
 	/* Exercise 4.13: Your code here. (3/6) */
 	syscall_mem_alloc(0,UCOW,perm);///
@@ -53,11 +53,11 @@ static void __attribute__((noreturn)) cow_entry (struct Trapframe *tf) {
 	// Step 6: Unmap the page at 'UCOW'.
 	/* Exercise 4.13: Your code here. (6/6) */
 	syscall_mem_unmap(0, UCOW);
-<<<<<<< HEAD
 
-=======
+
+
 	//debugf("debug-cow_entry-1-3\n");
->>>>>>> 9a355cf5a2fc316f9c2ed5b8c32a3b5e9791067d
+
 	// Step 7: Return to the faulting routine.
 	int r = syscall_set_trapframe(0, tf);
 	user_panic("syscall_set_trapframe returned %d", r);
@@ -154,9 +154,9 @@ int fork(void) {
 	// Hint: You should use 'duppage'.
 	/* Exercise 4.15: Your code here. (1/2) */
 	for (i = 0; i < VPN(USTACKTOP); ++i) {
-<<<<<<< HEAD
+
 		if ((vpd[i>>10] & PTE_V) && (vpt[i] & PTE_V)) {
-=======
+
 		//判断对应第i页的页表项有效性（页在有效的前提下才需要从父进程继承到子进程）  前者是一级页表项  其实只需要后者就可以了？
         // if ((*((Pde*)((vpd)[i >> 10])) & PTE_V) && (*((Pte *)((vpt)[i])) & PTE_V)) {
         //     duppage(child, i);
@@ -164,8 +164,8 @@ int fork(void) {
 		// if ((vpd[i>>10] & PTE_V) && (vpt[i] & PTE_V)) {
         //     duppage(child, i);
         // }
-		if (((Pte *)(vpt))[i] & PTE_V) {
->>>>>>> 9a355cf5a2fc316f9c2ed5b8c32a3b5e9791067d
+
+
             duppage(child, i);
         }
     }
@@ -177,11 +177,11 @@ int fork(void) {
 	 *   Child's TLB Mod user exception entry should handle COW, so set it to 'cow_entry'
 	 */
 	/* Exercise 4.15: Your code here. (2/2) */
-<<<<<<< HEAD
+
 		syscall_set_tlb_mod_entry( child, cow_entry);////////在父进程中对孩子进程进行时设置？
-=======
-		try(syscall_set_tlb_mod_entry( child, cow_entry));////////在父进程中对孩子进程进行时设置？
->>>>>>> 9a355cf5a2fc316f9c2ed5b8c32a3b5e9791067d
+
+
+
 		syscall_set_env_status(child, ENV_RUNNABLE);
 	//debugf("fork-debug-1-3\n");
 	return child;//能运行到这里 是父进程

@@ -127,10 +127,6 @@ int envid2env(u_int envid, struct Env **penv, int checkperm) {
 	}
 	e = &envs[ENVX(envid)];
 	
-<<<<<<< HEAD
-=======
-	
->>>>>>> 9a355cf5a2fc316f9c2ed5b8c32a3b5e9791067d
 	if (e->env_status == ENV_FREE || e->env_id != envid) {
 		*penv = NULL;
 		return -E_BAD_ENV;
@@ -146,18 +142,10 @@ int envid2env(u_int envid, struct Env **penv, int checkperm) {
 	if (checkperm!=0)
 	{
 		if(e!= curenv&& e->env_parent_id!= curenv->env_id ){
-<<<<<<< HEAD
 			return -E_BAD_ENV;
 		}
 	}
 
-=======
-			*penv = 0;
-			return -E_BAD_ENV;
-		}
-	}
-	
->>>>>>> 9a355cf5a2fc316f9c2ed5b8c32a3b5e9791067d
 	/* Step 3: Assign 'e' to '*penv'. */
 	*penv = e;
 	return 0;

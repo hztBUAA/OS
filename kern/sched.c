@@ -35,10 +35,6 @@ void schedule(int yield) {
 	 *   'TAILQ_FIRST', 'TAILQ_REMOVE', 'TAILQ_INSERT_TAIL'
 	 */
 	/* Exercise 3.12: Your code here. */
-<<<<<<< HEAD
-	
-=======
->>>>>>> 9a355cf5a2fc316f9c2ed5b8c32a3b5e9791067d
 	if (yield || count == 0 || !e|| e->env_status != ENV_RUNNABLE)
 	{
 		if (curenv && curenv->env_status == ENV_RUNNABLE)
