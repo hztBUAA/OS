@@ -67,7 +67,7 @@ int syscall_cgetc() {
 
 int syscall_write_dev(void *va, u_int dev, u_int len) {
 	/* Exercise 5.2: Your code here. (1/2) */
-	debugf("write\n");
+	//debugf("write\n");
 	return msyscall(SYS_write_dev, va, dev, len);
 }
 
