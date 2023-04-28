@@ -114,7 +114,7 @@ int sys_set_tlb_mod_entry(u_int envid, u_int func) {
 static inline int is_illegal_va(u_long va) {
 	return va < UTEMP || va >= UTOP;
 }
-
+//return 0 if the range is right
 static inline int is_illegal_va_range(u_long va, u_int len) {
 	if (len == 0) {
 		return 0;
@@ -456,7 +456,7 @@ int sys_ipc_try_send(u_int envid, u_int value, u_int srcva, u_int perm) {
 		if(p == NULL){
 			return -E_INVAL;
 		}
-		return page_insert(e->env_pgdir, e->env_asid,p,e->env_ipc_dstva,perm);
+		return page_insert(e->env_pgdir, e->env_asid,p,e->env_ipc_dstva,perm);//e是目标进程块
 		//sys_mem_map(curenv->env_asid,srcva,e->env_id,e->env_ipc_dstva,perm);
 	}
 	return 0;
@@ -483,7 +483,7 @@ int sys_cgetc(void) {
  *  Return 0 on success.
  *  Return -E_INVAL on bad address.
  *
- * Hint: Use the unmapped and uncached segment in kernel address space (KSEG1) to perform MMIO.
+ * Hint: Use the unmapped and uncached segment in kernel address space (KSEG1) to perform MMIO. // ?
  * Hint: You can use 'is_illegal_va_range' to validate 'va'.
  * Hint: You MUST use 'memcpy' to copy data after checking the validity.
  *
@@ -496,10 +496,17 @@ int sys_cgetc(void) {
  *	|    rtc     | 0x15000000 | 0x200  | (dev_rtc.h)
  *	* ---------------------------------*
  */
+//write va to pa with len
 int sys_write_dev(u_int va, u_int pa, u_int len) {
+	printk("1");
 	/* Exercise 5.1: Your code here. (1/2) */
-
-	return 0;
+	if (!is_illegal_va_range(va,len)&&((pa >= 0x10000000&& pa+len <= 0x10000020)||(pa >= 0x13000000 && pa+len <= 0x13004200)||(pa >= 0x15000000 && pa+len <= 0x15000200)))
+	{
+		memcpy((void*)va,(void*)(pa+0x10000000),len);
+		return 0;
+	}
+	
+	return -E_INVAL;
 }
 
 /* Overview:
@@ -513,10 +520,16 @@ int sys_write_dev(u_int va, u_int pa, u_int len) {
  *
  * Hint: You MUST use 'memcpy' to copy data after checking the validity.
  */
+//
 int sys_read_dev(u_int va, u_int pa, u_int len) {
 	/* Exercise 5.1: Your code here. (2/2) */
-
-	return 0;
+	if (!is_illegal_va_range(va,len)&&((pa >= 0x10000000&& pa+len <= 0x10000020)||(pa >= 0x13000000 && pa+len <= 0x13004200)||(pa >= 0x15000000 && pa+len <= 0x15000200)))
+	{
+		memcpy((void*)(pa+0x10000000),(void*)va,len);
+		return 0;
+	}
+	
+	return -E_INVAL;
 }
 
 void *syscall_table[MAX_SYSNO] = {

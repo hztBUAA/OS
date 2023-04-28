@@ -1,0 +1,135 @@
+Lab 4-1 Extra
+准备工作：创建并切换到 lab4-1-extra 分支
+请在自动初始化分支后，在开发机依次执行以下命令：
+
+$ cd ~/学号
+$ git fetch
+$ git checkout lab4-1-extra
+初始化的 lab4-1-extra 分支基于课下完成的 lab4 分支，并且在 tests 目录下添加了lab4_broadcast 样例测试目录。
+
+题目背景 & 函数声明
+课下我们在 MOS 系统中实现了 ipc_send、ipc_recv 函数，实现了进程间的通信。
+
+现在你需要仿照 ipc_send 函数在 user/lib/ipc.c 中实现 ipc_broadcast 函数，使得调用 ipc_broadcast 可以使当前进程向其后代进程（也即当前广播进程的子进程、子进程的子进程、子进程的子进程的子进程…以此类推）发起广播消息，等待其后代进程进入接收状态时，开始实际发送。若进程 A 的控制块中的 env_id 和进程 B 的控制块中的 env_parent_id 相等，则进程 B 为进程 A 的子进程。
+
+需要完成的新增函数如下：
+
+ipc_broadcast
+需要在 user/lib/ipc.c 新增：
+
+void ipc_broadcast(u_int val, void * srcva, u_int perm);
+参数：
+
+val ：进程广播传递的具体数值, 与 ipc_send 函数中的定义相同。
+srcva ：进程广播发送页的对应用户虚地址，与 ipc_send 函数中的定义相同。
+perm : 传递的页面的权限位设置，与 ipc_send 函数中的定义相同。
+行为描述：
+
+当前进程向后代进程发起广播消息，等待后代进程进入接收状态（即调用 ipc_recv）后，开始实际发送，与 ipc_send 行为相似。
+
+题目要求
+在 user/include/lib.h 中声明以下函数：
+
+void ipc_broadcast(u_int val, void * srcva, u_int perm);
+在 user/lib/ipc.c 中实现 ipc_broadcast
+
+注意点
+无需考虑进程间的父子关系成环，测试程序不会出现该情况。
+你可以实现 syscall_ipc_try_broadcast 系统调用，使其行为类似于 syscall_ipc_try_send，但尝试发送给当前进程的所有后代进程。
+你也可以尝试在用户空间利用 envs 实现相关行为。
+发送广播消息时，你可以先等待所有后代进程进入接受状态，再统一进行实际传输，也可以依次等待每个后代进程，一旦其处于接受状态，当即对其进行实际传输。
+测试数据范围
+实际测试中，进程数量不超过10（\le10≤10）个。
+
+样例输出 & 本地测试
+对于下列样例：
+
+如图：
+
+broadcast
+broadcast
+broadcast
+父子进程
+父子进程
+父子进程
+0x800
+0x1001
+0x1802
+0x2003
+#include <lib.h>
+const int PP1 = 0x800, PP2 = 0x1001, PP3 = 0x1802, PP4 = 0x2003;
+int main() {
+	u_int me, who, i;
+	me = syscall_getenvid();
+	debugf("%x father is %x\n", env->env_id, env->env_parent_id);
+	if (me == PP1) {
+		char str[40] = "hello world!~";
+		char *ptr = (char *)UTEMP;
+		strcpy(ptr, str);
+		debugf("\n@@@@@%x: is broadcasting\n", me);
+		ipc_broadcast(111, ptr, PTE_V);
+
+	} else if (me == PP2 || me == PP3 || me == PP4) {
+		;
+	} else {
+		debugf("unexpected envid %x\n", me);
+		syscall_panic("halt");
+	}
+
+	if (me != PP1) {
+		char *ptr = (char *)UTEMP;
+		debugf("\n@@@@@%x: is recving.....\n", me);
+		i = ipc_recv(&who, ptr, 0);
+		debugf("\n@@@@@%x recved from %x: [message]\"%s\", [value]%d\n", me, who, ptr, i);
+	}
+
+	for (;;) {
+	}
+	return 0;
+}
+应当输出类似：
+
+init.c: mips_init() is called
+Memory size: 65536 KiB, number of pages: 16384
+to memory 80430000 for struct Pages.
+pmap.c:  mips vm init success
+2003 father is 1802
+
+@@@@@2003: is recving.....
+1802 father is 800
+
+@@@@@1802: is recving.....
+1001 father is 800
+
+@@@@@1001: is recving.....
+800 father is 0
+
+@@@@@800: is broadcasting
+
+@@@@@1001 recved from 800: [message]"hello world!~", [value]111
+
+@@@@@1802 recved from 800: [message]"hello world!~", [value]111
+
+@@@@@2003 recved from 800: [message]"hello world!~", [value]111
+你可以使用 make test lab=4_broadcast && make run 在本地以调试模式测试上述样例。
+
+你可以使用 MOS_PROFILE=release make test lab=4_broadcast && make run 在本地开启优化测试上述样例。
+
+你也可以修改 tests/lab4_broadcast/ppa.c，在 main() 函数中自行编写测试代码进行测试。
+
+提交评测 & 评测标准
+请在开发机中执行下列命令后，在课程网站上提交评测。
+
+$ cd ~/学号
+$ git add -A
+$ git commit -m "message"  # 请将 message 改为有意义的信息
+$ git push
+在线评测时，所有的 .mk 文件、所有的 Makefile 文件、init/init.c 以及 tests/ 和 tools/ 目录下的所有文件都可能被替换为标准版本，因此请同学们在本地开发时，不要在这些文件中编写实际功能所依赖的代码。
+
+测试点和分数说明如下：
+
+测试点序号	评测内容	分数
+1	样例	5
+2	用 ipc_broadcast 广播传递的具体数值 val 的正确性	20
+3	用 ipc_broadcast 广播页面被映射 的正确性	35
+4	综合评测	40
