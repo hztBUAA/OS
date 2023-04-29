@@ -80,7 +80,7 @@ void test_fs() {
 	for (i = 0; i < 512; i++) {
 		r = alloced_block[i];
 		u_int va = 0x10000000 + (r << 12);
-		if (!((vpd[PDX(va)] & (PTE_V)) && (vpt[VPN(va)] & (PTE_V)))) {
+		if (!((vpd[PDX(va)] & (PTE_V)) && (vpt[VPN(va)] & (PTE_V)))) { // 页表项记录它是被alloc 被使用的
 			user_panic("block map is wrong");
 		}
 		user_assert(bits[r / 32] & (1 << (r % 32)));
