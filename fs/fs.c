@@ -147,7 +147,7 @@ int map_block(u_int blockno) {
 	// Hint: Use 'block_is_mapped'.
 	/* Exercise 5.7: Your code here. (1/5) */
 	void * va;
-	if ((va = block_is_mapped(blockno))){ // if mapped the result is not zero
+	if ((va = block_is_mapped(blockno))){ // if mapped the result is not zero  that is what i want   还没有被mapped 需要经过手续设置为已经mapped
 		return 0;
 	}
 	//debugf("q3\n");
