@@ -146,7 +146,7 @@ int sys_mem_alloc(u_int envid, u_int va, u_int perm) {
 	/* Exercise 4.4: Your code here. (1/3) */
 	if (is_illegal_va(va))
 	{
-		printk("q4\n");
+		//printk("q4\n");
 		return -E_INVAL;
 	}
 
