@@ -42,7 +42,6 @@ void sys_barrier_wait(void){
 		barrier = -1;
 		return;
 	}
-	sys_yield();
 //	sys_set_env_status(0,ENV_NOT_RUNNABLE);
 	//curenv = NULL;
 	return;
