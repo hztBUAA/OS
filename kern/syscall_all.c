@@ -32,6 +32,9 @@ void sys_barrier_wait(void){
 	TAILQ_REMOVE(&env_sched_list, curenv, env_sched_link);
 	curenv->env_status = ENV_NOT_RUNNABLE;
 	//return;
+	while(barrier != max){
+	sys_yield();
+	}
 	if(barrier == max){
 		for(int i =0;i<asize;i++){
 			struct Env *e;
@@ -42,7 +45,7 @@ void sys_barrier_wait(void){
 		barrier = -1;
 		return;
 	}
-	sys_yield();
+//	sys_yield();
 //	sys_set_env_status(0,ENV_NOT_RUNNABLE);
 	//curenv = NULL;
 	return;
