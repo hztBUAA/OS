@@ -12,7 +12,8 @@
 #define vpd ((volatile Pde *)(UVPT + (PDX(UVPT) << PGSHIFT)))
 #define envs ((volatile struct Env *)UENVS)
 #define pages ((volatile struct Page *)UPAGES)
-
+void barrier_alloc(int n);
+void barrier_wait(void);
 // libos
 void exit(void) __attribute__((noreturn));
 
@@ -46,6 +47,9 @@ int fork(void);
 /// syscalls
 extern int msyscall(int, ...);
 
+
+//void syscall_barrier_alloc(int n);
+//void syscall_barrier_wait(void);
 void syscall_putchar(int ch);
 int syscall_print_cons(const void *str, u_int num);
 u_int syscall_getenvid(void);

@@ -7,6 +7,41 @@
 #include <syscall.h>
 
 extern struct Env *curenv;
+int barrier = -1;
+//int count;
+int max;
+int a[65];
+int asize;
+void sys_barrier_alloc(int n){
+	barrier = 0;
+	max = n;
+	printk("n = 10\n");
+	return;
+}
+
+void sys_barrier_wait(void){
+	if(barrier == -1){
+		return;
+	}
+	printk("barrier = %d\nasize = %d\n",barrier, asize);
+	barrier++;
+	a[asize++] = curenv->env_id;
+	curenv->env_status = ENV_NOT_RUNNABLE;
+	TAILQ_REMOVE(&env_sched_list, curenv, env_sched_link);
+	if(barrier == max){
+		for(int i =0;i<asize;i++){
+			struct Env *e;
+			envid2env(a[i], &e, 0);
+			e->env_status = ENV_RUNNABLE;
+			TAILQ_INSERT_TAIL(&env_sched_list, e, env_sched_link);
+		}
+		barrier = -1;
+	}
+	return;
+}
+
+
+
 
 /* Overview:
  * 	This function is used to print a character on screen.
@@ -538,6 +573,8 @@ void *syscall_table[MAX_SYSNO] = {
     [SYS_cgetc] = sys_cgetc,
     [SYS_write_dev] = sys_write_dev,
     [SYS_read_dev] = sys_read_dev,
+    [SYS_barrier_alloc] = sys_barrier_alloc,
+    [SYS_barrier_wait] = sys_barrier_wait,
 };
 
 /* Overview:
