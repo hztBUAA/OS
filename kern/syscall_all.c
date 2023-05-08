@@ -15,7 +15,7 @@ int asize;
 void sys_barrier_alloc(int n){
 	barrier = 0;
 	max = n;
-	printk("n = 10\n");
+	//printk("max = %d\nm",max);
 	return;
 }
 
@@ -23,12 +23,10 @@ void sys_barrier_wait(void){
 	if(barrier == -1){
 		return;
 	}
-	printk("barrier = %d\nasize = %d\n",barrier, asize);
+	//printk("barrier = %d\nasize = %d\n",barrier, asize);
 	barrier++;
 	a[asize++] = curenv->env_id;
-	curenv->env_status = ENV_NOT_RUNNABLE;
-	TAILQ_REMOVE(&env_sched_list, curenv, env_sched_link);
-	if(barrier == max){
+	if(barrier == max-1){
 		for(int i =0;i<asize;i++){
 			struct Env *e;
 			envid2env(a[i], &e, 0);
@@ -36,7 +34,11 @@ void sys_barrier_wait(void){
 			TAILQ_INSERT_TAIL(&env_sched_list, e, env_sched_link);
 		}
 		barrier = -1;
+		return;
 	}
+	
+	curenv->env_status = ENV_NOT_RUNNABLE;
+	TAILQ_REMOVE(&env_sched_list, curenv, env_sched_link);
 	return;
 }
 
