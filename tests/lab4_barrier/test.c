@@ -1,6 +1,7 @@
 #include <lib.h>
 
 int main() {
+	barrier_wait();
 	barrier_alloc(10);
 	for (int i = 0; i < 9; i++) {
 		int who = fork();

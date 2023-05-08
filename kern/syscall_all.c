@@ -7,7 +7,7 @@
 #include <syscall.h>
 
 extern struct Env *curenv;
-int barrier = -1;
+static int barrier = -1;
 //int count;
 int max;
 int a[65];
@@ -16,31 +16,34 @@ void sys_barrier_alloc(int n){
 	barrier = 0;
 	max = n;
 	asize = 0;
-	//printk("max = %d\nm",max);
+	//printk("max = %d\n",max);
 	return;
 }
 
 void sys_barrier_wait(void){
+	//printk("barrier:%d\n",barrier);
 	if(barrier == -1){
 		return;
 	}
-	//printk("barrier = %d\nasize = %d\n",barrier, asize);
 	barrier++;
 	a[asize++] = curenv->env_id;
 	
-	TAILQ_REMOVE(&env_sched_list, curenv, env_sched_link);
-	curenv->env_status = ENV_NOT_RUNNABLE;
+	//printk("max = %d\nbarrier = %d\nasize = %d\n",max,barrier, asize);
+	//TAILQ_REMOVE(&env_sched_list, curenv, env_sched_link);
+	//curenv->env_status = ENV_NOT_RUNNABLE;
+	//
 	if(barrier == max){
 		for(int i =0;i<asize;i++){
 			struct Env *e;
-			envid2env(a[i], &e, 0);
+			envid2env(a[i], &e, 1);
 			e->env_status = ENV_RUNNABLE;
 			TAILQ_INSERT_TAIL(&env_sched_list, e, env_sched_link);
 		}
 		barrier = -1;
 		return;
 	}
-	
+	sys_set_env_status(0,ENV_NOT_RUNNABLE);
+	curenv = NULL;
 	return;
 }
 
