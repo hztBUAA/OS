@@ -26,7 +26,10 @@ void sys_barrier_wait(void){
 	//printk("barrier = %d\nasize = %d\n",barrier, asize);
 	barrier++;
 	a[asize++] = curenv->env_id;
-	if(barrier == max-1){
+	
+	TAILQ_REMOVE(&env_sched_list, curenv, env_sched_link);
+	curenv->env_status = ENV_NOT_RUNNABLE;
+	if(barrier == max){
 		for(int i =0;i<asize;i++){
 			struct Env *e;
 			envid2env(a[i], &e, 0);
@@ -37,8 +40,6 @@ void sys_barrier_wait(void){
 		return;
 	}
 	
-	curenv->env_status = ENV_NOT_RUNNABLE;
-	TAILQ_REMOVE(&env_sched_list, curenv, env_sched_link);
 	return;
 }
 
