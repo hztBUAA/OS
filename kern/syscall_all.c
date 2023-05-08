@@ -15,6 +15,7 @@ int asize;
 void sys_barrier_alloc(int n){
 	barrier = 0;
 	max = n;
+	asize = 0;
 	//printk("max = %d\nm",max);
 	return;
 }
