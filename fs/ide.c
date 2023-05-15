@@ -43,14 +43,16 @@ void ide_read(u_int diskno, u_int secno, void *dst, u_int nsecs) {
 		if (syscall_write_dev((u_int) &op_read, DEV_DISK_ADDRESS|DEV_DISK_START_OPERATION, 4) <0){
 			panic_on("ide_read panic");
 		}
+		//开始进行硬件上的读取  数值内容会保存在DEV_DISK_BUFFER 读取成功与否会保存在DEV_DISK_STATUS
 		u_int result;
 		if (syscall_read_dev((u_int) &result, DEV_DISK_ADDRESS|DEV_DISK_STATUS, 4) <0){
 			panic_on("ide_read panic");
-		}
+		} //读取返回结果，判断是否读取成功
 		if (!result)
 		{
 			panic_on("ide_read panic");
 		}
+		//syscall_read_dev的第一个参数是第二个参数所在的地址的值的保存地
 		if (syscall_read_dev((u_int)dst+off, DEV_DISK_ADDRESS|DEV_DISK_BUFFER, BY2SECT) <0)
 		{
 			panic_on("ide_read panic");
@@ -91,13 +93,14 @@ void ide_write(u_int diskno, u_int secno, void *src, u_int nsecs) {
 		if (syscall_write_dev((u_int) &offset, DEV_DISK_ADDRESS|DEV_DISK_OFFSET, 4) <0){
 			panic_on("ide_write offset panic");
 		}
-		if (syscall_write_dev((u_int)src+off, DEV_DISK_ADDRESS|DEV_DISK_BUFFER, BY2SECT) <0)
+		if (syscall_write_dev((u_int)src+off, DEV_DISK_ADDRESS|DEV_DISK_BUFFER, BY2SECT) <0) //这里要将src强转成u_int再进行计算
 		{
 			panic_on("ide_write buff panic");
 		}
 		if (syscall_write_dev((u_int) &op_write, DEV_DISK_ADDRESS|DEV_DISK_START_OPERATION, 4) <0){
 			panic_on("ide_write operation panic");
 		}
+		//开始硬件的写入 将DEV_DISK_BUFFER中的内容写到对应 offset的位置上
 		u_int result;
 		if (syscall_read_dev((u_int) &result, DEV_DISK_ADDRESS|DEV_DISK_STATUS, 4) <0){
 			panic_on("ide_write read result panic");
