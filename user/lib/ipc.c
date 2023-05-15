@@ -43,13 +43,13 @@ u_int ipc_recv(u_int *whom, void *dstva, u_int *perm) {
 
 
 u_int get_time(u_int *us){
-	int time = 0;
-	int timee = 0;
+	u_int time = 0;
+	u_int timee = 0;
     if (syscall_read_dev((u_int) & time, 0x15000000, 4) < 0)
         user_panic("time_read panic");
     if (syscall_read_dev((u_int) & time, 0x15000010, 4) < 0)
         user_panic("time_read panic");
-    if (syscall_read_dev((u_int) & timee, 0x15000010, 4) < 0)
+    if (syscall_read_dev((u_int) & timee, 0x15000020, 4) < 0)
         user_panic("time_read panic");
     *us = timee;
     return time;
@@ -65,7 +65,7 @@ void usleep(u_int us) {
 		// 读取当前时间
 		u_int curtimee = 0;
 		u_int curtime = get_time(&curtimee);
-		if (curtime >= stattime+a && curtimee>=starttimee+b) {
+		if (curtime >= starttime+a && curtimee>=starttimee+b) {
 			return;
 		} else {
 			syscall_yield();
