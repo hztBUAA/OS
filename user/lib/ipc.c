@@ -57,12 +57,15 @@ u_int get_time(u_int *us){
 
 void usleep(u_int us) {
 	// 读取进程进入 usleep 函数的时间
-	u_int timee = 0;
-	u_int starttime = get_time(&timee);
+	u_int a = us/1000000;
+	u_int b = us%1000000;
+	u_int starttimee = 0;
+	u_int starttime = get_time(&starttimee);
 	while (1) {
 		// 读取当前时间
-		u_int curtime = get_time(&timee);
-		if ((int)curtime-(int)starttime >= us/1000000+1) {
+		u_int curtimee = 0;
+		u_int curtime = get_time(&curtimee);
+		if (curtime >= stattime+a && curtimee>=starttimee+b>) {
 			return;
 		} else {
 			syscall_yield();
