@@ -65,7 +65,7 @@ void usleep(u_int us) {
 		// 读取当前时间
 		u_int curtimee = 0;
 		u_int curtime = get_time(&curtimee);
-		if (curtime >= stattime+a && curtimee>=starttimee+b>) {
+		if (curtime >= stattime+a && curtimee>=starttimee+b) {
 			return;
 		} else {
 			syscall_yield();
