@@ -1,10 +1,105 @@
-hzt
-hzt
-hzt pjq 
-hzt pjq
+int open(const char *path, int mode) { in user/file.c  增加文件omode功能
+    struct Fd *fd;
+    struct Filefd *ffd;
+    u_int size, fileid;
+    int r;
+    u_int va;
+    u_int i;
 
-hzt love 
-hzt love 
-hzt love  pjq 
-hzt love  pjq
+    // Step 1: Alloc a new Fd, return error code when fail to alloc.
+    // Hint: Please use fd_alloc.
+    r = fd_alloc(&fd);
+    if (r < 0) {
+        return r;
+    }
 
+    // Step 2: Get the file descriptor of the file to open.
+    r = fsipc_open(path, mode, fd);
+    if (r < 0) {
+        return r;
+    }
+
+    // Step 3: Set the start address storing the file's content. Set size and fileid correctly.
+    // Hint: Use fd2data to get the start address.
+    va = fd2data(fd);
+    ffd = (struct Filefd *) fd;
+    fileid = ffd->f_fileid;
+    size = ffd->f_file.f_size;
+    if (mode & O_APPEND) {
+        ffd->f_fd.fd_offset = size;
+    }
+
+    // Step 4: Map the file content into memory.
+    for (i = 0; i < size; i += BY2BLK) {
+        r = fsipc_map(fileid, i, va + i);
+        if (r < 0) {
+            return r;
+        }
+    }
+
+    if (mode & O_ALONE) {
+        syscall_mem_map(0, fd, 0, fd, (*vpt)[VPN(fd)] & (PTE_V | PTE_R));
+    }
+
+    // Step 5: Return file descriptor.
+    // Hint: Use fd2num.
+    return fd2num(fd);
+}
+
+
+
+
+
+
+
+void serve_open(u_int envid, struct Fsreq_open *rq) {
+    writef("serve_open %08x %x 0x%x\n", envid, (int) rq->req_path, rq->req_omode);
+
+    u_char path[MAXPATHLEN];
+    struct File *f;
+    struct Filefd *ff;
+    int fileid;
+    int r;
+    struct Open *o;
+
+    // Copy in the path, making sure it's null-terminated
+    user_bcopy(rq->req_path, path, MAXPATHLEN);
+    path[MAXPATHLEN - 1] = 0;
+
+    // Find a file id.
+    if ((r = open_alloc(&o)) < 0) {
+        user_panic("open_alloc failed: %d, invalid path: %s", r, path);
+        ipc_send(envid, r, 0, 0);
+    }
+
+    fileid = r;
+
+    // Open the file.
+    if ((r = file_open((char *) path, &f)) < 0) {
+        //	user_panic("file_open failed: %d, invalid path: %s", r, path);
+        if (rq->req_omode & O_CREAT) { 、、、、、、、、、、、、、
+            file_create((char *) path, &f);
+            r = 0;
+        } else {
+            ipc_send(envid, r, 0, 0);
+            return;
+        }
+    }
+
+    // Save the file pointer.
+    o->o_file = f;
+
+    // Fill out the Filefd structure
+    ff = (struct Filefd *) o->o_ff;
+    ff->f_file = *f;
+    ff->f_fileid = o->o_fileid;
+    o->o_mode = rq->req_omode;
+    ff->f_fd.fd_omode = o->o_mode;
+    ff->f_fd.fd_dev_id = devfile.dev_id;
+
+    ipc_send(envid, 0, (u_int) o->o_ff, PTE_V | PTE_R | PTE_LIBRARY);
+}
+
+
+user/fd.c    user/file.c    user/fsipc.c              fs/serv.c          fs/fs.c
+                open-------->fsipc_open--共享映射ffd->serve_open---获取File------>file_open
