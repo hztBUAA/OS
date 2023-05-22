@@ -242,7 +242,30 @@ struct File *create_file(struct File *dirf) {
 	u_int bno = make_link_block(dirf, nblk);
 	return (struct File *) (disk[bno].data);
 }
+void write_symlink(struct File *dirf, const char *path) {
+	struct File *target = create_file(dirf);
+	// Your code here: 使用 readlink() 函数读取链接文件指向的路径，将其写入到下一个可用的磁盘块
+/*
+int readlink(char *pathname, char *buf, int bufsiz) 来读取一个链接文件指向的目标路径（这个函数将路径 pathname 处的符号链接指向的目标路径写入 buf 指向的缓冲区，最多写入 bufsiz 个字节，返回值是写入的字节数量。*/
+	readlink(path, disk[nextbno].data,1024);
 
+    
+    
+    
+    const char *fname = strrchr(path, '/');
+	if (fname) {
+		fname++;
+	} else {
+		fname = path;
+	}
+	// Your code here: 设置链接文件的文件名、大小（指向路径的字符串的长度）、类型属性
+    strcpy(target->f_name, fname);
+
+	target->f_size = strlen(path);
+	target->f_type = FTYPE_LNK;
+
+	save_block_link(target, 0, next_block(BLOCK_DATA));
+}
 // Write file to disk under specified dir.
 void write_file(struct File *dirf, const char *path) {
 	int iblk = 0, r = 0, n = sizeof(disk[0].data);
@@ -302,9 +325,12 @@ void write_directory(struct File *dirf, char *path) {
 			sprintf(buf, "%s/%s", path, e->d_name);
 			if (e->d_type == DT_DIR) {
 				write_directory(pdir, buf);
-			} else {
+			} else if(e->d_type == DT_REG){
 				write_file(pdir, buf);
+			}else{
+				write_symlink(pdir,buf);
 			}
+			
 			free(buf);
 		}
 	}
@@ -323,7 +349,7 @@ int main(int argc, char **argv) {
 	for (int i = 2; i < argc; i++) {
 		char *name = argv[i];
 		struct stat stat_buf;
-		int r = stat(name, &stat_buf);
+		int r = lstat(name, &stat_buf);
 		assert(r == 0);
 		if (S_ISDIR(stat_buf.st_mode)) {
 			printf("writing directory '%s' recursively into disk\n", name);
@@ -331,7 +357,11 @@ int main(int argc, char **argv) {
 		} else if (S_ISREG(stat_buf.st_mode)) {
 			printf("writing regular file '%s' into disk\n", name);
 			write_file(&super.s_root, name);
-		} else {
+		} else if (S_ISLNK(stat_buf.stmode)){
+			printf("writing symlink '%s' into disk\n", name);
+			write_symlink(&super.s_root, name);
+		}
+		else {
 			fprintf(stderr, "'%s' has illegal file mode %o\n", name, stat_buf.st_mode);
 			exit(2);
 		}
