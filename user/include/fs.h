@@ -23,15 +23,15 @@
 
 #define BY2FILE 256
 
-struct File {
+struct File {//操作系统对文件的感知 类似Env Page
 	char f_name[MAXNAMELEN]; // filename
 	uint32_t f_size;	 // file size in bytes
 	uint32_t f_type;	 // file type
-	uint32_t f_direct[NDIRECT];
-	uint32_t f_indirect;
+	uint32_t f_direct[NDIRECT];//文件的直接指针，记录文件的数据块在磁盘上的下标
+	uint32_t f_indirect;//一个类型为BLOCK_INDEX磁盘块的下标
 
 	struct File *f_dir; // the pointer to the dir where this file is in, valid only in memory.
-	char f_pad[BY2FILE - MAXNAMELEN - (3 + NDIRECT) * 4 - sizeof(void *)];
+	char f_pad[BY2FILE - MAXNAMELEN - (3 + NDIRECT) * 4 - sizeof(void *)];//占位
 } __attribute__((aligned(4), packed));
 
 #define FILE2BLK (BY2BLK / sizeof(struct File))

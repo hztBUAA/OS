@@ -498,6 +498,7 @@ int sys_cgetc(void) {
  *	* ---------------------------------*
  */
 //write va to pa with len
+//0xa0000000是物理地址到虚拟地址的硬件级别偏移量    0x10000000是外设的物理地址 它后面还有一个偏移量是用来控制功能的（控制寄存器）
 int sys_write_dev(u_int va, u_int pa, u_int len) {
 	//printk("1");
 	/* Exercise 5.1: Your code here. (1/2) */

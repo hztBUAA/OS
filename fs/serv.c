@@ -55,7 +55,7 @@ int open_alloc(struct Open **o) {
 			if ((r = syscall_mem_alloc(0, opentab[i].o_ff, PTE_D | PTE_LIBRARY)) < 0) {
 				return r;
 			}
-		case 1:
+		case 1://之前已经使用过 但已经不再用了 所以不需要重新alloc 把代码加上1024防止混淆
 			opentab[i].o_fileid += MAXOPEN;
 			*o = &opentab[i];
 			memset((void *)opentab[i].o_ff, 0, BY2PG);
@@ -98,22 +98,22 @@ void serve_open(u_int envid, struct Fsreq_open *rq) {
 
 	// Open the file.
 	if ((r = file_open(rq->req_path, &f)) < 0) {
-		ipc_send(envid, r, 0, 0);
+		ipc_send(envid, r, 0, 0); //文件系统犯错的信息r发送回用户进程
 		return;
 	}
 
 	// Save the file pointer.
-	o->o_file = f;
+	o->o_file = f;//这句代码之前，open结构体还和这个f没有联系
 
 	// Fill out the Filefd structure
-	ff = (struct Filefd *)o->o_ff;
+	ff = (struct Filefd *)o->o_ff;//ff为了引用open结构体的Filefd数据 方便接下来的赋值
 	ff->f_file = *f;
-	ff->f_fileid = o->o_fileid;
+	ff->f_fileid = o->o_fileid;//可以认为 很多重复部分的数据
 	o->o_mode = rq->req_omode;
 	ff->f_fd.fd_omode = o->o_mode;
 	ff->f_fd.fd_dev_id = devfile.dev_id;
 
-	ipc_send(envid, 0, o->o_ff, PTE_D | PTE_LIBRARY);
+	ipc_send(envid, 0, o->o_ff, PTE_D | PTE_LIBRARY);//将Filefd所在物理页发送给用户进程
 }
 
 void serve_map(u_int envid, struct Fsreq_map *rq) {
@@ -179,7 +179,7 @@ void serve_remove(u_int envid, struct Fsreq_remove *rq) {
 	//=========================================================//
 	// Step 2: Respond the return value to the requester 'envid' using 'ipc_send'.
 	/* Exercise 5.11: Your code here. (2/2) */
-	ipc_send(envid, 0 ,0 ,0);//?
+	ipc_send(envid, r ,0 ,0);//?
 
 }
 

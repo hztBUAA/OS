@@ -183,7 +183,7 @@ void save_block_link(struct File *f, int nblk, int bno) {
 	}
 }
 
-// Make new block contians link to files in a directory.
+// Make new block contians link to files in a directory.  调用了save_block_link   让dirf这个块里面的块指针（总共能有1024，目前为nblk个）
 int make_link_block(struct File *dirf, int nblk) {
 	int bno = next_block(BLOCK_FILE);
 	save_block_link(dirf, nblk, bno);
@@ -203,7 +203,7 @@ int make_link_block(struct File *dirf, int nblk) {
 //
 // Hint:
 //  Use 'make_link_block' to allocate a new block for the directory if there are no existing unused
-//  'File's.
+//  'File's.  调用了make_link_block
 struct File *create_file(struct File *dirf) {
 	int nblk = dirf->f_size / BY2BLK;
 
@@ -220,7 +220,7 @@ struct File *create_file(struct File *dirf) {
 		}else{
 			bno = ((int *) (disk[dirf->f_indirect].data))[i];//hard to understand 
 		}
-		
+		//bno是磁盘下标  上面使用间接块指针时是会访问磁盘的？会慢？只是mos这里以一个数组的形式？
 		// Get the directory block using the block number.
 		struct File *blk = (struct File *)(disk[bno].data); // block contains many files FCB
 
@@ -295,7 +295,7 @@ void write_directory(struct File *dirf, char *path) {
 		// File already created, no way back from here.
 		exit(1);
 	}
-	pdir->f_type = FTYPE_DIR;
+	pdir->f_type = FTYPE_DIR; //write_directory
 	for (struct dirent *e; (e = readdir(dir)) != NULL;) {
 		if (strcmp(e->d_name, ".") != 0 && strcmp(e->d_name, "..") != 0) {
 			char *buf = malloc(strlen(path) + strlen(e->d_name) + 2);

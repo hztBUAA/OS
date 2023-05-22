@@ -32,10 +32,11 @@ struct Dev {
 };
 
 // file descriptor
+//记录打开文件的状态，以便对文件进行管理和读写，不对应物理实体，单纯内存数据
 struct Fd {
-	u_int fd_dev_id;
-	u_int fd_offset;
-	u_int fd_omode;
+	u_int fd_dev_id;//文件所在设备的id
+	u_int fd_offset;//读写文件时距离文件开头的偏移量
+	u_int fd_omode;//文件打开时的读写模式
 };
 
 // State
@@ -47,10 +48,11 @@ struct Stat {
 };
 
 // file descriptor + file
+//文件描述符+文件的组合形式，对应磁盘的物理实体，也包含内存数据
 struct Filefd {
-	struct Fd f_fd;
-	u_int f_fileid;
-	struct File f_file;
+	struct Fd f_fd;//文件描述符Fd
+	u_int f_fileid;//文件的id
+	struct File f_file;//文件控制块
 };
 
 int fd_alloc(struct Fd **fd);
