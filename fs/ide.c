@@ -77,6 +77,7 @@ void ide_read(u_int diskno, u_int secno, void *dst, u_int nsecs) {
 // Hint: Use the physical address and offsets defined in 'include/drivers/dev_disk.h':
 //  'DEV_DISK_ADDRESS', 'DEV_DISK_ID', 'DEV_DISK_OFFSET', 'DEV_DISK_BUFFER',
 //  'DEV_DISK_OPERATION_WRITE', 'DEV_DISK_START_OPERATION', 'DEV_DISK_STATUS'
+// 每一次只交易一个扇区的数据
 void ide_write(u_int diskno, u_int secno, void *src, u_int nsecs) {
 	u_int begin = secno * BY2SECT;
 	u_int end = begin + nsecs * BY2SECT;
