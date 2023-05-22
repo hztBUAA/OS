@@ -179,7 +179,7 @@ void serve_remove(u_int envid, struct Fsreq_remove *rq) {
 	//=========================================================//
 	// Step 2: Respond the return value to the requester 'envid' using 'ipc_send'.
 	/* Exercise 5.11: Your code here. (2/2) */
-	ipc_send(envid, 0 ,0 ,0);//?
+	ipc_send(envid, r ,0 ,0);//?
 
 }
 
