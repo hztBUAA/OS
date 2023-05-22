@@ -19,6 +19,50 @@ struct Dev devfile = {
     .dev_stat = file_stat,
 };
 
+int openat(int dirfd, const char *path, int mode){
+	struct Fd *dir;
+	int r =0;
+	if ((r = fd_lookup(dirfd, &dir)) < 0) {
+		return r;
+	}
+	struct Filefd * fffd = (struct Filfd *) dir;
+	u_int fileidd = fffd->f_fileid;
+	struct Fd *fd;
+	 r = fd_alloc(&fd);
+	 if (r <0){
+		 return r;
+	 }
+	//r = fsipc_open(path, mode, fd);
+	//if(r<0){
+	//	return r;
+	//}
+	r = fsipc_openat(fileidd, path, mode, fd);
+	if(r<0){
+		return r;
+	}
+	// Step 3: Set 'va' to the address of the page where the 'fd''s data is cached, using
+        // 'fd2data'. Set 'size' and 'fileid' correctly with the value in 'fd' as a 'Filefd'.
+        char *va;
+        struct Filefd *ffd;
+        u_int size, fileid;
+        /* Exercise 5.9: Your code here. (3/5) */
+        va = fd2data(fd);
+        ffd = (struct Filefd *) fd;
+        fileid = ffd->f_fileid;
+        size = ffd->f_file.f_size;//?Filefd and fd?
+        // Step 4: Alloc pages and map the file content using 'fsipc_map'.
+        for (int i = 0; i < size; i += BY2PG) {
+                /* Exercise 5.9: Your code here. (4/5) */
+                r = fsipc_map(fileid, i, va+i); //Map the file content into memory.
+                if (r <0){
+                        return r;
+                }
+        }
+
+        // Step 5: Return the number of file descriptor using 'fd2num'.
+        /* Exercise 5.9: Your code here. (5/5) */
+        return fd2num(fd);
+}
 // Overview:
 //  Open a file (or directory).
 //

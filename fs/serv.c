@@ -85,6 +85,39 @@ int open_lookup(u_int envid, u_int fileid, struct Open **po) {
 // To send a result back, ipc_send(envid, r, 0, 0).
 // To include a page, ipc_send(envid, r, srcva, perm).
 
+void serve_openat(u_int envid, struct Fsreq_openat *rq){
+struct File *f;
+        struct Filefd *ff;
+        int r;
+        struct Open *o;
+	 // Find a file id.
+        if ((r = open_alloc(&o)) < 0) {
+                ipc_send(envid, r, 0, 0);
+        }
+	struct Open *pOpen;
+	if ((r = open_lookup(envid, rq->dir_fileid, &pOpen)) < 0) {
+		ipc_send(envid, r, 0, 0);
+		return;
+	}
+	struct File *dir = pOpen->o_file;
+	// Open the file.
+        if ((r = file_openat(dir, rq->req_path, &f)) < 0) {
+                ipc_send(envid, r, 0, 0); //文件系统犯错的信息r发送回用户进程
+                return;
+        }
+	// Save the file pointer.
+        o->o_file = f;//这句代码之前，open结构体还和这个f没有联系
+
+        // Fill out the Filefd structure
+        ff = (struct Filefd *)o->o_ff;//ff为了引用open结构体的Filefd数据 方便接下来的赋值
+        ff->f_file = *f;
+        ff->f_fileid = o->o_fileid;//可以认为 很多重复部分的数据
+        o->o_mode = rq->req_omode;
+        ff->f_fd.fd_omode = o->o_mode;
+        ff->f_fd.fd_dev_id = devfile.dev_id;
+
+        ipc_send(envid, 0, o->o_ff, PTE_D | PTE_LIBRARY);//将Filefd所在物理页发送给用户进程	
+}
 void serve_open(u_int envid, struct Fsreq_open *rq) {
 	struct File *f;
 	struct Filefd *ff;
@@ -247,7 +280,9 @@ void serve(void) {
 		case FSREQ_SYNC:
 			serve_sync(whom);
 			break;
-
+		case FSREQ_OPENAT:
+			serve_openat(whom, (struct Fsreq_openat *)REQVA);
+			break;
 		default:
 			debugf("Invalid request code %d from %08x\n", whom, req);
 			break;

@@ -12,9 +12,8 @@
 #define vpd ((volatile Pde *)(UVPT + (PDX(UVPT) << PGSHIFT)))
 #define envs ((volatile struct Env *)UENVS)
 #define pages ((volatile struct Page *)UPAGES)
-
 // libos
-void exit(void) __attribute__((noreturn));
+//void exit(void) __attribute__((noreturn));
 
 extern volatile struct Env *env;
 
@@ -77,6 +76,7 @@ u_int ipc_recv(u_int *whom, void *dstva, u_int *perm);
 void wait(u_int envid);
 
 // console.c
+//
 int opencons(void);
 int iscons(int fdnum);
 
@@ -100,7 +100,7 @@ int fsipc_dirty(u_int, u_int);
 int fsipc_remove(const char *);
 int fsipc_sync(void);
 int fsipc_incref(u_int);
-
+int fsipc_openat(u_int, const char *, u_int, struct Fd *);
 // fd.c
 int close(int fd);
 int read(int fd, void *buf, u_int nbytes);
@@ -119,6 +119,7 @@ int remove(const char *path);
 int ftruncate(int fd, u_int size);
 int sync(void);
 
+int openat(int dirfd, const char *path, int mode);
 #define user_assert(x)                                                                             \
 	do {                                                                                       \
 		if (!(x))                                                                          \
