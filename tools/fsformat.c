@@ -357,7 +357,7 @@ int main(int argc, char **argv) {
 		} else if (S_ISREG(stat_buf.st_mode)) {
 			printf("writing regular file '%s' into disk\n", name);
 			write_file(&super.s_root, name);
-		} else if (S_ISLNK(stat_buf.stmode)){
+		} else if (S_ISLNK(stat_buf.st_mode)){
 			printf("writing symlink '%s' into disk\n", name);
 			write_symlink(&super.s_root, name);
 		}

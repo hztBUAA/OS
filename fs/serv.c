@@ -101,7 +101,14 @@ void serve_open(u_int envid, struct Fsreq_open *rq) {
 		ipc_send(envid, r, 0, 0); //文件系统犯错的信息r发送回用户进程
 		return;
 	}
-
+	while(f->f_type != FTYPE_REG){
+        if ((r = file_open(f->f_name, &f)) < 0) {
+		//debugf("name:%s\n",f->f_name);
+		ipc_send(envid, r, 0, 0); //文件系统犯错的信息r发送回用户进程
+		return;
+	}
+    }
+	//debugf("lllllllllllllllll\n");
 	// Save the file pointer.
 	o->o_file = f;//这句代码之前，open结构体还和这个f没有联系
 
