@@ -100,14 +100,27 @@ static int _pipe_is_closed(struct Fd *fd, struct Pipe *p) {
 	// Check if the pipe is closed using 'pageref(fd)' and 'pageref(p)'.
 	// If they're the same, the pipe is closed.
 	// Otherwise, the pipe isn't closed.
-
+	
 	int fd_ref, pipe_ref, runs;
 	// Use 'pageref' to get the reference counts for 'fd' and 'p', then
 	// save them to 'fd_ref' and 'pipe_ref'.
 	// Keep retrying until 'env->env_runs' is unchanged before and after
 	// reading the reference counts.
 	/* Exercise 6.1: Your code here. (1/3) */
-
+	while (1)
+	{
+		u_int before = env->env_runs;
+		u_int after = 0;
+		fd_ref = pageref(fd);
+		pipe_ref = pageref(p); 
+		after = env->env_runs;
+		if (after == before)
+		{
+			break;
+		}
+	}
+	
+	
 	return fd_ref == pipe_ref;
 }
 
@@ -128,7 +141,7 @@ static int pipe_read(struct Fd *fd, void *vbuf, u_int n, u_int offset) {
 	int i;
 	struct Pipe *p;
 	char *rbuf;
-
+	rbuf = (char*)vbuf;
 	// Use 'fd2data' to get the 'Pipe' referred by 'fd'.
 	// Write a loop that transfers one byte in each iteration.
 	// Check if the pipe is closed by '_pipe_is_closed'.
@@ -137,7 +150,25 @@ static int pipe_read(struct Fd *fd, void *vbuf, u_int n, u_int offset) {
 	//    of bytes read so far.
 	//  - Otherwise, keep yielding until the buffer isn't empty or the pipe is closed.
 	/* Exercise 6.1: Your code here. (2/3) */
+	p = fd2data(fd);
 
+	for (i = 0; i < n; i++) {
+		while (_pipe_is_closed(fd,p) || (p->p_rpos == p->p_wpos && p->p_rpos > 0)) {
+			// 如果已经读取到至少一个字节或者管道已关闭，就返回当前已读取的字节数
+			if (i > 0 || _pipe_is_closed(fd,p)) {
+				return i;
+			}
+
+			// 等待缓冲区不为空或者管道关闭
+			syscall_yield();
+		}
+
+		// 从管道中读取一个字节
+		rbuf[i] = p->p_buf[p->p_rpos++ % BY2PIPE];
+	}
+
+	return n;
+	
 	user_panic("pipe_read not implemented");
 }
 
@@ -156,7 +187,7 @@ static int pipe_write(struct Fd *fd, const void *vbuf, u_int n, u_int offset) {
 	int i;
 	struct Pipe *p;
 	char *wbuf;
-
+	wbuf = (char *)vbuf;
 	// Use 'fd2data' to get the 'Pipe' referred by 'fd'.
 	// Write a loop that transfers one byte in each iteration.
 	// If the bytes of the pipe used equals to 'BY2PIPE', the pipe is regarded as full.
@@ -166,6 +197,23 @@ static int pipe_write(struct Fd *fd, const void *vbuf, u_int n, u_int offset) {
 	//  - If the pipe isn't closed, keep yielding until the buffer isn't full or the
 	//    pipe is closed.
 	/* Exercise 6.1: Your code here. (3/3) */
+	p = fd2data(fd);
+	for(int i = 0; i < n ; i++){
+		while (_pipe_is_closed(fd,p) || p->p_wpos == BY2PIPE)
+		{
+			if (_pipe_is_closed(fd,p))
+			{
+				return i;
+			}
+			syscall_yield();
+		}
+		
+
+
+		wbuf[i] = p->p_buf[p->p_wpos++];
+	}
+
+
 
 	user_panic("pipe_write not implemented");
 
@@ -209,8 +257,9 @@ int pipe_is_closed(int fdnum) {
  */
 static int pipe_close(struct Fd *fd) {
 	// Unmap 'fd' and the referred Pipe.
-	syscall_mem_unmap(0, (void *)fd2data(fd));
+	
 	syscall_mem_unmap(0, fd);
+	syscall_mem_unmap(0, (void *)fd2data(fd));
 	return 0;
 }
 
