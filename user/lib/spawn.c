@@ -108,55 +108,100 @@ int spawn(char *prog, char **argv) {
 	if ((fd = open(prog, O_RDONLY)) < 0) {
 		return fd;
 	}
-
+	//return 0;
 	// Step 2: Read the ELF header (of type 'Elf32_Ehdr') from the file into 'elfbuf' using
 	// 'readn()'.
 	// If that fails (where 'readn' returns a different size than expected),
 	// set 'r' and 'goto err' to close the file and return the error.
 	int r;
-	u_char elfbuf[512];
+	u_char elfbuf[512];//把elfbuf拷贝为elf的EHDR
 	/* Exercise 6.4: Your code here. (1/6) */
-
-	const Elf32_Ehdr *ehdr = elf_from(elfbuf, sizeof(Elf32_Ehdr));
+	r = readn(fd, elfbuf, 512);
+	if (r < 0 )
+	{
+		goto err;
+	}
+	
+	const Elf32_Ehdr *ehdr = elf_from(elfbuf, sizeof(Elf32_Ehdr));//接下来只对elfbuf进行操作
 	if (!ehdr) {
 		r = -E_NOT_EXEC;
 		goto err;
 	}
+	//debugf("1\n");
 	u_long entrypoint = ehdr->e_entry;
 
 	// Step 3: Create a child using 'syscall_exofork()' and store its envid in 'child'.
 	// If the syscall fails, set 'r' and 'goto err'.
 	u_int child;
 	/* Exercise 6.4: Your code here. (2/6) */
-
+	child = syscall_exofork();
+	r = child;
+	if (r < 0) {
+		goto err;
+	}
+	if (r == 0)
+	{
+		env = envs + ENVX(syscall_getenvid());
+		return 0;
+	}
+	//debugf("2\n");
 	// Step 4: Use 'init_stack(child, argv, &sp)' to initialize the stack of the child.
 	// 'goto err1' if that fails.
 	u_int sp;
 	/* Exercise 6.4: Your code here. (3/6) */
-
+	init_stack(child, argv, &sp);
 	// Step 5: Load the ELF segments in the file into the child's memory.
 	// This is similar to 'load_icode()' in the kernel.
 	size_t ph_off;
+	//debugf("3\n");
 	ELF_FOREACH_PHDR_OFF (ph_off, ehdr) {
 		// Read the program header in the file with offset 'ph_off' and length
 		// 'ehdr->e_phentsize' into 'elfbuf'.
 		// 'goto err1' on failure.
 		// You may want to use 'seek' and 'readn'.
+		/*
+		size_t ph_off;
+	ELF_FOREACH_PHDR_OFF (ph_off, ehdr) { 
+		//ph_off得到了ELF文件头的程序segment的内容地址相对于binary的偏移量
+		//而这个ph_off是从ehdr里面的结构体成员得到的
+		Elf32_Phdr *ph = (Elf32_Phdr *)(binary + ph_off);
+		if (ph->p_type == PT_LOAD) {
+			// 'elf_load_seg' is defined in lib/elfloader.c
+			// 'load_icode_mapper' defines the way in which a page in this segment
+			// should be mapped.
+			//seg 由若干页组成   elf_load_seg通过执行若干次load_icode_mapper实现
+			panic_on(elf_load_seg(ph, binary + ph->p_offset, load_icode_mapper, e));
+		}
+	}*/
 		/* Exercise 6.4: Your code here. (4/6) */
-
+		r = seek(fd, ph_off);
+		readn(fd, elfbuf, 512);//这个512？
 		Elf32_Phdr *ph = (Elf32_Phdr *)elfbuf;
+		//debugf("4-1\n");
 		if (ph->p_type == PT_LOAD) {
 			void *bin;
 			// Read and map the ELF data in the file at 'ph->p_offset' into our memory
 			// using 'read_map()'.
 			// 'goto err1' if that fails.
 			/* Exercise 6.4: Your code here. (5/6) */
-
+			r = read_map(fd, ph->p_offset, &bin);
+			//debugf("4-2\n");
+			if (r < 0)
+			{
+				goto err1;
+			}
+			
 			// Load the segment 'ph' into the child's memory using 'elf_load_seg()'.
 			// Use 'spawn_mapper' as the callback, and '&child' as its data.
 			// 'goto err1' if that fails.
 			/* Exercise 6.4: Your code here. (6/6) */
-
+			r = elf_load_seg(ph, bin, spawn_mapper, env);
+			//debugf("4-3\n");
+			if (r < 0)
+			{
+				goto err1;
+			}
+			
 		}
 	}
 	close(fd);

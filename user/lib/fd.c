@@ -200,7 +200,7 @@ int read(int fdnum, void *buf, u_int n) {
 
 int readn(int fdnum, void *buf, u_int n) {
 	int m, tot;
-
+	//debugf("1\n");
 	for (tot = 0; tot < n; tot += m) {
 		m = read(fdnum, (char *)buf + tot, n - tot);
 
