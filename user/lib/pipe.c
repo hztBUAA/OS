@@ -153,7 +153,7 @@ static int pipe_read(struct Fd *fd, void *vbuf, u_int n, u_int offset) {
 	p = fd2data(fd);
 
 	for (i = 0; i < n; i++) {
-		while (_pipe_is_closed(fd,p) || (p->p_rpos == p->p_wpos && p->p_rpos>0)) {
+		while (_pipe_is_closed(fd,p) || (p->p_rpos == p->p_wpos)) {
 
 			
 			// 如果已经读取到至少一个字节或者管道已关闭，就返回当前已读取的字节数
