@@ -116,7 +116,7 @@ int spawn(char *prog, char **argv) {
 	int r;
 	u_char elfbuf[512];//把elfbuf拷贝为elf的EHDR
 	/* Exercise 6.4: Your code here. (1/6) */
-	r = readn(fd, elfbuf, 512);
+	r = readn(fd, elfbuf, sizeof(Elf32_Ehdr));
 	if (r < 0 )
 	{
 		goto err;
@@ -139,7 +139,7 @@ int spawn(char *prog, char **argv) {
 	if (r < 0) {
 		goto err;
 	}
-	if (r == 0)
+	if (r == 0)//子进程的v0寄存器值为0  意味着从exofrok函数返回时（再次被调度时） 其返回值是0
 	{
 		env = envs + ENVX(syscall_getenvid());
 		return 0;
@@ -152,6 +152,7 @@ int spawn(char *prog, char **argv) {
 	init_stack(child, argv, &sp);
 	// Step 5: Load the ELF segments in the file into the child's memory.
 	// This is similar to 'load_icode()' in the kernel.
+	//load_icode();
 	size_t ph_off;
 	//debugf("3\n");
 	ELF_FOREACH_PHDR_OFF (ph_off, ehdr) {
@@ -175,7 +176,12 @@ int spawn(char *prog, char **argv) {
 	}*/
 		/* Exercise 6.4: Your code here. (4/6) */
 		r = seek(fd, ph_off);
-		readn(fd, elfbuf, 512);//这个512？
+		if (r < 0)
+		{
+			goto err1;
+		}
+		
+		readn(fd, elfbuf, ehdr->e_phentsize);//这个512？
 		Elf32_Phdr *ph = (Elf32_Phdr *)elfbuf;
 		//debugf("4-1\n");
 		if (ph->p_type == PT_LOAD) {
@@ -195,7 +201,7 @@ int spawn(char *prog, char **argv) {
 			// Use 'spawn_mapper' as the callback, and '&child' as its data.
 			// 'goto err1' if that fails.
 			/* Exercise 6.4: Your code here. (6/6) */
-			r = elf_load_seg(ph, bin, spawn_mapper, env);
+			r = elf_load_seg(ph, bin, spawn_mapper, &child);
 			//debugf("4-3\n");
 			if (r < 0)
 			{

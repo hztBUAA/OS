@@ -153,7 +153,7 @@ static int pipe_read(struct Fd *fd, void *vbuf, u_int n, u_int offset) {
 	p = fd2data(fd);
 
 	for (i = 0; i < n; i++) {
-		while (_pipe_is_closed(fd,p) || (p->p_rpos == p->p_wpos && p->p_rpos > 0)) {
+		while (_pipe_is_closed(fd,p) || (p->p_rpos == p->p_wpos && p->p_rpos>0)) {
 
 			
 			// 如果已经读取到至少一个字节或者管道已关闭，就返回当前已读取的字节数
@@ -201,7 +201,7 @@ static int pipe_write(struct Fd *fd, const void *vbuf, u_int n, u_int offset) {
 	/* Exercise 6.1: Your code here. (3/3) */
 	p = fd2data(fd);
 	for(int i = 0; i < n ; i++){
-		while (_pipe_is_closed(fd,p) || p->p_wpos == BY2PIPE)
+		while (_pipe_is_closed(fd,p) || p->p_wpos - p->p_rpos == BY2PIPE)
 		{
 			if (_pipe_is_closed(fd,p))
 			{
@@ -210,15 +210,8 @@ static int pipe_write(struct Fd *fd, const void *vbuf, u_int n, u_int offset) {
 			syscall_yield();
 		}
 		
-
-
 		 p->p_buf[p->p_wpos++ % BY2PIPE] = wbuf[i];
 	}
-
-
-
-	user_panic("pipe_write not implemented");
-
 	return n;
 }
 

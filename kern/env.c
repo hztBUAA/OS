@@ -358,7 +358,7 @@ static void load_icode(struct Env *e, const void *binary, size_t size) {
 		Elf32_Phdr *ph = (Elf32_Phdr *)(binary + ph_off);
 		if (ph->p_type == PT_LOAD) {
 			// 'elf_load_seg' is defined in lib/elfloader.c
-			// 'load_icode_mapper' defines the way in which a page in this segment
+			// '_mapper' defines the way in which a page in this segment
 			// should be mapped.
 			//seg 由若干页组成   elf_load_seg通过执行若干次load_icode_mapper实现
 			panic_on(elf_load_seg(ph, binary + ph->p_offset, load_icode_mapper, e));
