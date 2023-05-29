@@ -121,7 +121,6 @@ int spawn(char *prog, char **argv) {
 	{
 		goto err;
 	}
-	
 	const Elf32_Ehdr *ehdr = elf_from(elfbuf, sizeof(Elf32_Ehdr));//接下来只对elfbuf进行操作
 	if (!ehdr) {
 		r = -E_NOT_EXEC;
@@ -156,24 +155,6 @@ int spawn(char *prog, char **argv) {
 	size_t ph_off;
 	//debugf("3\n");
 	ELF_FOREACH_PHDR_OFF (ph_off, ehdr) {
-		// Read the program header in the file with offset 'ph_off' and length
-		// 'ehdr->e_phentsize' into 'elfbuf'.
-		// 'goto err1' on failure.
-		// You may want to use 'seek' and 'readn'.
-		/*
-		size_t ph_off;
-	ELF_FOREACH_PHDR_OFF (ph_off, ehdr) { 
-		//ph_off得到了ELF文件头的程序segment的内容地址相对于binary的偏移量
-		//而这个ph_off是从ehdr里面的结构体成员得到的
-		Elf32_Phdr *ph = (Elf32_Phdr *)(binary + ph_off);
-		if (ph->p_type == PT_LOAD) {
-			// 'elf_load_seg' is defined in lib/elfloader.c
-			// 'load_icode_mapper' defines the way in which a page in this segment
-			// should be mapped.
-			//seg 由若干页组成   elf_load_seg通过执行若干次load_icode_mapper实现
-			panic_on(elf_load_seg(ph, binary + ph->p_offset, load_icode_mapper, e));
-		}
-	}*/
 		/* Exercise 6.4: Your code here. (4/6) */
 		r = seek(fd, ph_off);
 		if (r < 0)
