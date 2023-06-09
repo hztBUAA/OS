@@ -27,6 +27,7 @@ u_int ipc_recv(u_int *whom, void *dstva, u_int *perm) {
 		user_panic("syscall_ipc_recv err: %d", r);
 	}
 
+	//receive的线程再次被调度时 发送进程的send函数已经执行完了   值env_ipc_value已经存储在当前进程（正在运行的进程）的进程控制块里面
 	if (whom) {
 		*whom = env->env_ipc_from;
 	}
