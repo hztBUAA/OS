@@ -22,9 +22,9 @@ static void __attribute__((noreturn)) cow_entry(struct Trapframe *tf) {
 	 * 'PTE_COW', launch a 'user_panic'. */
 	/* Exercise 4.13: Your code here. (1/6) */
 	perm = (vpt[VPN(va)] & 0xFFF);
-	// if((perm&PTE_COW) != PTE_COW){
-	// 	//user_panic("perm not PTE_COW");
-	// 	user_panic("miss something in PTE_COW\n");
+	if((perm&PTE_COW) != PTE_COW){
+		//user_panic("perm not PTE_COW");
+		user_panic("miss something in PTE_COW\n");
 	// }
 	/* Step 2: Remove 'PTE_COW' from the 'perm', and add 'PTE_D' to it. */
 	/* Exercise 4.13: Your code here. (2/6) */
