@@ -5,6 +5,7 @@
 #include <printk.h>
 #include <sched.h>
 #include <syscall.h>
+#include <signal.h>
 
 extern struct Env *curenv;
 
@@ -534,6 +535,35 @@ int sys_read_dev(u_int va, u_int pa, u_int len) {
 	return -E_INVAL;
 }
 
+/*
+其中 how 表明对于信号掩码的修改类型方式，包括下面三种方式：
+
+SIG_BLOCK（how 为 0）: 将 set 参数中指定的信号添加到当前进程的信号掩码中
+SIG_UNBLOCK（how 为 1）: 将 set 参数中指定的信号从当前进程的信号掩码中删除
+SIG_SETMASK（how 为 2）: 将当前进程的信号掩码设置为 set 参数中指定的信号集
+当 oldset 不为 NULL 时，还需将原有的信号掩码放在 oldset 指定的地址空间中。
+
+正常执行则返回 0，否则返回异常码 -1.*/
+int sys_sigprocmask(int how, const struct sigset_t *set, struct sigset_t *oset){
+    switch (how)
+    {
+    case SIG_BLOCK:
+        curenv->blocked[0] |= set->sig[0];
+        curenv->blocked[1] |= set->sig[1];
+        break;
+    case SIG_UNBLOCK:
+        curenv->blocked[0] &= (~set->sig[0]);
+        curenv->blocked[1] &= (~set->sig[1]);
+        break;
+    case SIG_SETMASK:
+        curenv->blocked[0] = set->sig[0];
+        curenv->blocked[1] = set->sig[1];
+        break;
+    default:
+        break;
+    }
+}
+
 void *syscall_table[MAX_SYSNO] = {
     [SYS_putchar] = sys_putchar,
     [SYS_print_cons] = sys_print_cons,
@@ -553,6 +583,7 @@ void *syscall_table[MAX_SYSNO] = {
     [SYS_cgetc] = sys_cgetc,
     [SYS_write_dev] = sys_write_dev,
     [SYS_read_dev] = sys_read_dev,
+	[SYS_sigprocmask] = sys_sigprocmask,
 };
 
 /* Overview:

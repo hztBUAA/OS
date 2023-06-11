@@ -37,6 +37,12 @@ struct Env {
 
 	// Lab 6 scheduler counts
 	u_int env_runs; // number of times been env_run'ed
+
+	//lab 4 challenge
+	u_int signal[2];//待处理的信号（未决信号）
+	u_int blocked[2];//信号屏蔽字
+	struct sigqueue *head;//待处理信号的顺序链表  末尾时next为null
+	u_int handler[64];//类似于mod entry  存储了64个执行处理函数的地址 为0时为缺省处理方式
 };
 
 LIST_HEAD(Env_list, Env);

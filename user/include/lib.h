@@ -7,6 +7,7 @@
 #include <pmap.h>
 #include <syscall.h>
 #include <trap.h>
+#include <signal.h>
 
 #define vpt ((volatile Pte *)UVPT)
 #define vpd ((volatile Pde *)(UVPT + (PDX(UVPT) << PGSHIFT)))
@@ -38,6 +39,14 @@ void _user_halt(const char *, int, const char *, ...) __attribute__((noreturn));
 		}                                                                                  \
 	} while (0)
 
+/// user_signal.c
+int sigemptyset(struct sigset_t *set);
+int sigfillset(struct sigset_t *set);
+int sigaddset(struct sigset_t *set, int signo);
+int sigdelset(struct sigset_t *set, int signo);
+int sigismember(const struct sigset_t *set, int signo);
+int sigprocmask(int how, const struct sigset_t *set, struct sigset_t *oset);
+int sigpending(struct sigset_t *set);
 /// fork, spawn
 int spawn(char *prog, char **argv);
 int spawnl(char *prot, char *args, ...);
@@ -68,7 +77,7 @@ int syscall_ipc_recv(void *dstva);
 int syscall_cgetc();
 int syscall_write_dev(void *, u_int, u_int);
 int syscall_read_dev(void *, u_int, u_int);
-
+int syscall_sigprocmask(int how, const struct sigset_t *set, struct sigset_t *oset);
 // ipc.c
 void ipc_send(u_int whom, u_int val, const void *srcva, u_int perm);
 u_int ipc_recv(u_int *whom, void *dstva, u_int *perm);

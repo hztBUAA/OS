@@ -1,3 +1,5 @@
+#ifndef _SIGNAL_H_
+#define _SIGNAL_H_
 #define SIGHUP		 1
 #define SIGINT		 2
 #define SIGQUIT		 3
@@ -53,13 +55,19 @@ typedef void (*__sighandler_t)(int);
 #define SIG_IGN	((__sighandler_t)1)	/* ignore signal */
 #define SIG_ERR	((__sighandler_t)-1)	/* error return from signal */
 
-struct sigset_t{
+ struct sigset_t{
     int sig[2]; //最多 32*2=64 种信号
 };
 
-struct sigaction {
+ struct sigqueue{
+	struct sigqueue *next;
+	u_int signo;//只需记录待处理的信号num即可
+};
+
+ struct sigaction {
 	__sighandler_t sa_handler;
-	sigset_t sa_mask;
+	struct sigset_t sa_mask;
 	// int sa_flags;
 	// void (*sa_restorer)(void);
 };
+#endif /* _SIGNAL_H_ */
