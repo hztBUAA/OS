@@ -133,7 +133,9 @@
     
 // }
 #include <lib.h>
-
+/**
+ * 简单的信号测试 
+*/
 int global = 0;
 void handler(int num) {
     debugf("Reach handler, now the signum is %d!\n", num);

@@ -1,10 +1,12 @@
 #include <lib.h>
-
+/**
+ * SIGSEGV的空指针报错正常检测 panic在用户态
+*/
 int a[10] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
 int *test = NULL;
 void sgv_handler(int num) {
     debugf("Segment fault appear!\n");
-    test = &a[0];
+    test = &a[1];
     debugf("test = %d.\n", *test);
     exit();
 }

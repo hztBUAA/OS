@@ -42,7 +42,7 @@ void __attribute__((noreturn)) signal_entry(struct Trapframe *tf,int signo,u_int
 		
 		syscall_sigprocmask(SIG_SETMASK,&env_mask,&handler_mask);
 		tf->cp0_epc += 4;
-		debugf("return to the next instruction that call a kernel,EPC:%x\n",tf->cp0_epc);
+		//debugf("return to the next instruction that call a kernel,EPC:%x\n",tf->cp0_epc);
 	}
 	r = syscall_set_trapframe(0,tf);
 	//如果上面的set_trapframe系统调用成功调用，用户栈会恢复，上下文环境会变成tf，此时PC也会更改，不会运行下一条panic
@@ -83,7 +83,7 @@ static void __attribute__((noreturn)) cow_entry(struct Trapframe *tf) { // 参�
 	perm = perm|PTE_D;
 	/* Step 3: Allocate a new page at 'UCOW'. */
 	/* Exercise 4.13: Your code here. (3/6) */
-	syscall_mem_alloc(0,UCOW,perm);///
+	syscall_mem_alloc(0,(void *)UCOW,perm);///
 	/* Step 4: Copy the content of the faulting page at 'va' to 'UCOW'. */
 	/* Hint: 'va' may not be aligned to a page! */
 	/* Exercise 4.13: Your code here. (4/6) */
@@ -91,11 +91,11 @@ static void __attribute__((noreturn)) cow_entry(struct Trapframe *tf) { // 参�
 	memcpy((void*)UCOW, (void*)ROUNDDOWN(va,BY2PG), BY2PG);
 	// Step 5: Map the page at 'UCOW' to 'va' with the new 'perm'.
 	/* Exercise 4.13: Your code here. (5/6) */
-	syscall_mem_map(0, UCOW, 0, ROUNDDOWN(va,BY2PG), perm);
+	syscall_mem_map(0, (void *)UCOW, 0, (void *)ROUNDDOWN(va,BY2PG), perm);
 	// Step 6: Unmap the page at 'UCOW'.
 	/* Exercise 4.13: Your code here. (6/6) */
-	syscall_mem_unmap(0, UCOW);
-
+	syscall_mem_unmap(0, (void *)UCOW);
+	//debugf("cowcow\n");
 	// Step 7: Return to the faulting routine.
 	int r = syscall_set_trapframe(0, tf); //恢复处理函数前的tf  这个是为了防止重入  即用户态进行异常处理时 如果进程切换了 或者其他任何打断  可以如同压栈  内核栈都是用一次的即可被覆盖  正是由于有这个set_trapframe
 	user_panic("syscall_set_trapframe returned %d", r);

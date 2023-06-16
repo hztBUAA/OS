@@ -58,7 +58,7 @@ typedef void (*__sighandler_t)(int);
 #define _S(nr) (1<<((nr)-1))
 #define _BLOCKABLE (~(_S(SIGKILL) | _S(SIGSTOP)))
  struct sigset_t{
-    int sig[2]; //最多 32*2=64 种信号
+    u_int sig[2]; //最多 32*2=64 种信号
 };
 
  

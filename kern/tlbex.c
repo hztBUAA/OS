@@ -9,6 +9,7 @@ static void passive_alloc(u_int va, Pde *pgdir, u_int asid) {
 	if (va < UTEMP) {
 		sys_kill(0,SIGSEGV);
 		env_run(curenv);
+		//printk("try1\n");
 		panic("address too low");
 	}
 
@@ -47,6 +48,7 @@ Pte _do_tlb_refill(u_long va, u_int asid) {
 
 	/* Exercise 2.9: Your code here. */
 	while(1) {
+		//printk("va = %x,curenv = %d\n",va,curenv->env_id);
 		if(!page_lookup(cur_pgdir,va,&pte) ) {
 			passive_alloc(va,cur_pgdir,asid);
 		}
@@ -89,7 +91,7 @@ void do_tlb_mod(struct Trapframe *tf) {
 
 void do_signal(struct Trapframe *tf){
 	u_int signo = 0;
-	struct sigqueue s = curenv->head[curenv->start];
+	struct sigqueue *s = &curenv->head[curenv->start];
 	//u_int i = 0;
 	if (curenv->cnt == -1)
 	{
@@ -99,7 +101,7 @@ void do_signal(struct Trapframe *tf){
 	}else{
 		while (1)
 		{			
-			u_int temp = s.signo;
+			u_int temp = s->signo;
 			if (((curenv->blocked[signo/32]) & (1 << ((temp-1)%32))) == 0)//这个temp信号不被当前进程阻塞
 			{
 				//printk("in do_signal: deal with signal-%d\n",signo);
@@ -107,11 +109,11 @@ void do_signal(struct Trapframe *tf){
 				curenv->signal[signo/32] &= ~(1 << ((temp-1) %32));
 				break;
 			}
-			if (s.next == -1)
+			if (s->next == -1)
 			{
 				break;
 			}
-			s = curenv->head[s.next];
+			s = &curenv->head[s->next];
 		}
 		
 	}
@@ -123,32 +125,34 @@ void do_signal(struct Trapframe *tf){
 	//printk("in do_signal: deal with signal-%d\n",signo);
 	//找到就将它从未决信号链表删除 并更新signal位图  所以貌似我的signal位图并没有用 只需链表即可
 	//因为是单向链表所以不好进行 查到就删除
-	struct sigqueue ss = curenv->head[curenv->start];
-	if (ss.signo == s.signo)
+	struct sigqueue *ss = &curenv->head[curenv->start];
+	if (ss->signo == s->signo)
 	{
-		if (ss.next == -1)
+		if (ss->next == -1)
 		{
 			//仅一个
 			curenv->cnt = -1;//第一个也是空的
 			curenv->start = 0;
 			curenv->head[curenv->start].next = -1;
 		}else{
-			curenv->start = ss.next;
+			curenv->start = ss->next;
 		}
 	}else{
 		while (1)
 		{
-			if (curenv->head[ss.next].signo == s.signo)
-			{
-				ss.next = s.next;
-				break;
-			}
-			if (ss.next == 0||ss.next>=1024)
+			if (ss->next == 0||ss->next>=1024)
 			{
 				panic("Error:do_signal函数对Env结构体的数组链表的信号删除出现mistake!\n");
 			}
+			if (curenv->head[ss->next].signo == s->signo)
+			{
+				ss->next = s->next;
+				//printk("删掉一个信号-%d,s.next = %d,ss.next = %d\n",s->signo,s->next,ss->next);
+				break;
+			}
 			
-			ss = curenv->head[ss.next];
+			
+			ss = &curenv->head[ss->next];
 		}
 	}
 	
