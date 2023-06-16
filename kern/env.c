@@ -287,6 +287,20 @@ int env_alloc(struct Env **new, u_int parent_id) {
 	 asid_alloc(&(e->env_asid));
 	
 	e->env_user_tlb_mod_entry = 0; // for lab4
+	e->env_user_signal_entry = 0;
+	for (size_t i = 0; i < 1024; i++)
+	{
+		memset((void *)&e->head[i],0,sizeof(struct sigqueue));
+	}
+	for (size_t i = 0; i < 64; i++)
+	{
+		memset((void *)&(e->info[i]),0,sizeof(struct sigaction));
+	}
+	
+	e->blocked[0] = 0;
+	e->blocked[1] = 0;
+	e->cnt = -1;
+	e->start = 0;
 	e->env_runs = 0;	       // for lab6
 	/* Exercise 3.4: Your code here. (3/4) */
 
@@ -501,7 +515,7 @@ void env_run(struct Env *e) {
 	 *   'curenv->env_tf' first.
 	 */
 	if (curenv) {
-		curenv->env_tf = *((struct Trapframe *)KSTACKTOP - 1);
+		curenv->env_tf = *((struct Trapframe *)KSTACKTOP - 1);//“上一次的当前进程刚从内核出来”  所以它的tf是在进入内核态时保存到内核栈tf空间的
 	}
 
 	/* Step 2: Change 'curenv' to 'e'. */
@@ -520,7 +534,13 @@ void env_run(struct Env *e) {
 	 *    returning to the kernel caller, making 'env_run' a 'noreturn' function as well.
 	 */
 	/* Exercise 3.8: Your code here. (2/2) */
-	env_pop_tf(&curenv->env_tf, curenv->env_id);
+
+	//开始deal？  此时这个env_run函数还处于内核态  所以deal函数是内核的kern函数  根据情况是ignore default user_handle 最后者需要类似cow_entry
+
+
+	env_pop_tf(&curenv->env_tf, curenv->env_asid); 
+	// asid 的作用是啥来着？  页表？ TLB  
+	 //ret_from_exception 需要从处理异常的内核态 回到用户态  将保存好的tf restore到寄存器里面  继续开始执行硬件PC所指的用户地址的程序
 }
 
 void env_check() {

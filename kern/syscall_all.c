@@ -6,7 +6,7 @@
 #include <sched.h>
 #include <syscall.h>
 #include <signal.h>
-
+#include <malloc.h>
 extern struct Env *curenv;
 
 /* Overview:
@@ -105,6 +105,24 @@ int sys_set_tlb_mod_entry(u_int envid, u_int func) {
 	/* Step 2: Set its 'env_user_tlb_mod_entry' to 'func'. */
 	/* Exercise 4.12: Your code here. (2/2) */
 	env->env_user_tlb_mod_entry = func;
+	//printk("sys_set_tlb_mod_entry-debug-1-3\nfunc:%x\n",func);
+	return 0;
+}
+
+int sys_set_user_signal_entry(u_int envid,u_int func){
+	struct Env *env;
+
+	/* Step 1: Convert the envid to its corresponding 'struct Env *' using 'envid2env'. */
+	/* Exercise 4.12: Your code here. (1/2) */
+	int ret = 0;
+	if((ret = envid2env(envid, &env, 1)) < 0){
+		return ret;
+	} 
+	//printk("sys_set_tlb_mod_entry-debug-1-2\n");
+	/* Step 2: Set its 'env_user_tlb_mod_entry' to 'func'. */
+	/* Exercise 4.12: Your code here. (2/2) */
+	env->env_user_signal_entry = func;
+	//printk("set env-%d's ueer_signal_entry to %x\n",envid,func);
 	//printk("sys_set_tlb_mod_entry-debug-1-3\nfunc:%x\n",func);
 	return 0;
 }
@@ -279,6 +297,9 @@ int sys_exofork(void) {
 	/* Step 1: Allocate a new env using 'env_alloc'. */
 	/* Exercise 4.9: Your code here. (1/4) */
 	env_alloc(&e,curenv->env_id);
+	/*
+	env_alloc 是普遍性的Env结构体的表项域的赋值
+	而下面的memcpy说明是属于exofork 的特有的 是父子进程的有联系的*/
 	/* Step 2: Copy the current Trapframe below 'KSTACKTOP' to the new env's 'env_tf'. */
 	/* Exercise 4.9: Your code here. (2/4) */
 	memcpy((void*)(&(e->env_tf)),
@@ -289,8 +310,20 @@ int sys_exofork(void) {
 	e->env_tf.regs[2] = 0;
 	/* Step 4: Set up the new env's 'env_status' and 'env_pri'.  */
 	/* Exercise 4.9: Your code here. (4/4) */
-	e->env_pri = curenv->env_pri;
+	e->env_pri = curenv->env_pri;	
 	e->env_status = ENV_NOT_RUNNABLE;
+	for (size_t i = 0; i < 64; i++)
+	{
+		memcpy((void *)&(e->info[i]),(void *)&(curenv->info[i]),sizeof(struct sigaction));
+	}
+	memcpy(e->blocked,curenv->blocked,sizeof(u_int)*2);
+	e->env_user_signal_entry = curenv->env_user_signal_entry;
+	for (size_t i = 0; i < 1024; i++)
+	{
+		// 
+		memcpy((void *)&e->head[i],(void *)&curenv->head[i],sizeof(struct sigqueue));
+	}
+	e->cnt = curenv->cnt;
 	//printk("sys_exofork-debug-1-4\ne->env_id:%d\n",e->env_id);
 	return e->env_id;
 }
@@ -353,7 +386,7 @@ int sys_set_trapframe(u_int envid, struct Trapframe *tf) {
 	struct Env *env;
 	try(envid2env(envid, &env, 1));
 	if (env == curenv) {
-		*((struct Trapframe *)KSTACKTOP - 1) = *tf;
+		*((struct Trapframe *)KSTACKTOP - 1) = *tf;  //从用户自定义的异常处理函数结束后 返回内核态  将内核栈恢复
 		// return `tf->regs[2]` instead of 0, because return value overrides regs[2] on
 		// current trapframe.
 		return tf->regs[2];
@@ -548,20 +581,112 @@ int sys_sigprocmask(int how, const struct sigset_t *set, struct sigset_t *oset){
     switch (how)
     {
     case SIG_BLOCK:
-        curenv->blocked[0] |= set->sig[0];
-        curenv->blocked[1] |= set->sig[1];
+		if (oset)
+		{
+			oset->sig[0] = curenv->blocked[0];
+			oset->sig[1] = curenv->blocked[1];
+		}
+		if (set)
+		{
+			curenv->blocked[0] |= set->sig[0];
+        	curenv->blocked[1] |= set->sig[1];	
+		}
+		//printk("how == 0,curenv->blocked[0]:%d,blocked[1]:%d\n",curenv->blocked[0],curenv->blocked[1]);
         break;
     case SIG_UNBLOCK:
-        curenv->blocked[0] &= (~set->sig[0]);
-        curenv->blocked[1] &= (~set->sig[1]);
+		if (oset)
+		{
+			oset->sig[0] = curenv->blocked[0];
+			oset->sig[1] = curenv->blocked[1];
+		}
+		if (set)
+		{
+			curenv->blocked[0] &= (~set->sig[0]);
+        	curenv->blocked[1] &= (~set->sig[1]);
+		}
+		//printk("how == 1,curenv->blocked[0]:%d,blocked[1]:%d\n",curenv->blocked[0],curenv->blocked[1]);
         break;
     case SIG_SETMASK:
-        curenv->blocked[0] = set->sig[0];
-        curenv->blocked[1] = set->sig[1];
+		if (oset)
+		{
+			oset->sig[0] = curenv->blocked[0];
+			oset->sig[1] = curenv->blocked[1];
+		}
+		if (set)
+		{
+			curenv->blocked[0] = set->sig[0];
+        	curenv->blocked[1] = set->sig[1];
+		} 
+		//printk("how == 2,curenv->blocked[0]:%d,blocked[1]:%d,curenv->start = %d\n",curenv->blocked[0],curenv->blocked[1],curenv->start);
         break;
     default:
-        break;
+        return -1;
     }
+	return 0;
+}
+
+/*
+信号的注册函数采用下面的函数：
+其中 signum 表示需要处理信号的编号，act 表示新的信号处理结构体，旧的信号处理结构体则需要在 oldact != NULL 时保存该指针在对应的地址空间中。*/
+int sys_sigaction(int signum, const struct sigaction *act, struct sigaction *oldact){
+	if ( signum > 64) {
+        return -1;
+    }
+	if (signum <= 0 ) {
+        return -E_INVAL;
+    }
+	if (oldact)
+	{
+		memcpy((void *)oldact,(void *)&(curenv->info[signum-1]),sizeof(struct sigaction));
+	}
+	if (act)
+	{
+		memcpy((void *)&curenv->info[signum-1],(void *)act,sizeof(struct sigaction));
+	}
+	return 0;
+}
+
+int sys_kill(u_int envid,int signo){
+	
+	if(signo <= 0 || signo > 64){
+		return -1;
+	}
+	struct Env *e;
+	int r;
+	r = envid2env(envid,&e,0);
+	if (r < 0 )
+	{
+		return -1;
+	}
+	//printk("enter sys_kill,signo = %d,received-env->signal[0] = %x\n",signo,e->signal[0]);
+	// still insert the signal 
+	//<32  可靠信号 第一次才需要插入
+	//不可靠信号  
+	if ((signo/32) == 0 && (e->signal[0]&_S(signo)) == 0 || (signo/32) == 1)
+	{
+		struct sigqueue s;
+		s.signo = signo;
+		s.next = -1;
+		if (e->cnt >= 1023)
+		{
+			//printk("e->cnt = %d\n",e->cnt);
+			panic("Error:env--%d has received too many(exceed 1024) signals that have not been done\n",curenv->env_id);
+		}
+		if(e->cnt!= -1){
+			e->head[e->cnt].next = e->cnt + 1;
+		}
+		e->cnt++;//-1--->0
+		memcpy((void *)&e->head[e->cnt],(void *)&s,sizeof(struct sigqueue));
+		printk("curenv-%d send signal-%d to env-%d,stored in it->head[%d]\n",curenv->env_id,signo,e->env_id,e->cnt);
+	}
+
+	//indicate the signal has been pending(waiting for dealing with once come to 用户态or schedule)
+	e->signal[signo/32] |= _S(signo%32);
+	//printk("in kill: curenv-%d send signal-%d to env-%d\n",curenv->env_id,signo,e->env_id);
+	return 0;
+	//signal 只管接到kill发来的信号 
+	//先不管是不是被阻塞 
+	//最后自然会去signal 和blocked的交集进行运行 
 }
 
 void *syscall_table[MAX_SYSNO] = {
@@ -584,6 +709,9 @@ void *syscall_table[MAX_SYSNO] = {
     [SYS_write_dev] = sys_write_dev,
     [SYS_read_dev] = sys_read_dev,
 	[SYS_sigprocmask] = sys_sigprocmask,
+	[SYS_sigaction] = sys_sigaction,
+	[SYS_kill] = sys_kill,
+	[SYS_set_user_signal_entry] = sys_set_user_signal_entry,
 };
 
 /* Overview:
@@ -603,7 +731,6 @@ void do_syscall(struct Trapframe *tf) {
 		tf->regs[2] = -E_NO_SYS;
 		return;
 	}
-
 	/* Step 1: Add the EPC in 'tf' by a word (size of an instruction). */
 	/* Exercise 4.2: Your code here. (1/4) */
 	tf->cp0_epc += 4;

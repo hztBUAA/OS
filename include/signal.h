@@ -55,19 +55,25 @@ typedef void (*__sighandler_t)(int);
 #define SIG_IGN	((__sighandler_t)1)	/* ignore signal */
 #define SIG_ERR	((__sighandler_t)-1)	/* error return from signal */
 
+#define _S(nr) (1<<((nr)-1))
+#define _BLOCKABLE (~(_S(SIGKILL) | _S(SIGSTOP)))
  struct sigset_t{
     int sig[2]; //最多 32*2=64 种信号
 };
 
- struct sigqueue{
-	struct sigqueue *next;
-	u_int signo;//只需记录待处理的信号num即可
-};
+ 
 
- struct sigaction {
+ struct sigaction{
 	__sighandler_t sa_handler;
 	struct sigset_t sa_mask;
 	// int sa_flags;
 	// void (*sa_restorer)(void);
 };
+
+struct sigqueue{
+	int next;//下一个信号结构体的编号
+	int signo;//只需记录待处理的信号num即可
+	struct sigaction action;
+};
+extern void do_signal(struct Trapframe *tf);
 #endif /* _SIGNAL_H_ */

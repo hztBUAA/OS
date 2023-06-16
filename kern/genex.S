@@ -2,6 +2,7 @@
 #include <drivers/dev_rtc.h>
 #include <stackframe.h>
 
+
 .macro BUILD_HANDLER exception handler
 NESTED(handle_\exception, TF_SIZE + 8, zero)
 	move    a0, sp
@@ -14,7 +15,17 @@ END(handle_\exception)
 
 .text
 
-FEXPORT(ret_from_exception)
+FEXPORT(ret_from_exception)  #刚开始sp寄存器是内核栈指针  存储了用户进程的上下文tf  从异常态返回就是将内核栈指针的指向存储的用户进程上下文恢复
+	mfc0    k0, CP0_EPC
+	bltz    k0, 1f
+	move    a0, sp
+	addiu   sp, sp, -8
+	nop
+
+	jal do_signal
+	nop
+	addiu   sp, sp, 8
+1:
 	RESTORE_SOME
 	lw      k0, TF_EPC(sp)
 	lw      sp, TF_REG29(sp) /* Deallocate stack */

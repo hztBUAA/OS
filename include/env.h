@@ -5,6 +5,7 @@
 #include <queue.h>
 #include <trap.h>
 #include <types.h>
+#include <signal.h>
 
 #define LOG2NENV 10
 #define NENV (1 << LOG2NENV)
@@ -39,10 +40,13 @@ struct Env {
 	u_int env_runs; // number of times been env_run'ed
 
 	//lab 4 challenge
-	u_int signal[2];//待处理的信号（未决信号）
-	u_int blocked[2];//信号屏蔽字
-	struct sigqueue *head;//待处理信号的顺序链表  末尾时next为null
-	u_int handler[64];//类似于mod entry  存储了64个执行处理函数的地址 为0时为缺省处理方式
+	u_int signal[2];//待处理的信号（未决信号）  方便判断发送信号时原来是否存在
+	u_int blocked[2];//信号屏蔽位图
+	u_int env_user_signal_entry;
+	int start;
+	int cnt;//指向下一个可用的head下标
+	struct sigqueue head[1024];//待处理信号的顺序链表  末尾时next为null
+	struct sigaction info[64];//64种信号的信息 类似扩大版位图
 };
 
 LIST_HEAD(Env_list, Env);
@@ -62,6 +66,9 @@ void enable_irq(void);
 
 void env_check(void);
 void envid2env_check(void);
+
+//for SIGSEGV
+int sys_kill(u_int envid,int signo);
 
 #define ENV_CREATE_PRIORITY(x, y)                                                                  \
 	({                                                                                         \
