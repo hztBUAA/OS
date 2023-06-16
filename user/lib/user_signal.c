@@ -80,54 +80,54 @@ int sigpending(sigset_t *set) {
     return -1; // 暂时返回失败
 }
 
-int main() {
-    sigset_t myset;
-    int result;
+// int main() {
+//     sigset_t myset;
+//     int result;
     
-    // 测试 sigemptyset
-    result = sigemptyset(&myset);
-    if (result == 0) {
-        printf("sigemptyset succeeded\n");
-    } else {
-        printf("sigemptyset failed\n");
-    }
+//     // 测试 sigemptyset
+//     result = sigemptyset(&myset);
+//     if (result == 0) {
+//         printf("sigemptyset succeeded\n");
+//     } else {
+//         printf("sigemptyset failed\n");
+//     }
     
-    // 测试 sigfillset
-    result = sigfillset(&myset);
-    if (result == 0) {
-        printf("sigfillset succeeded\n");
-    } else {
-        printf("sigfillset failed\n");
-    }
+//     // 测试 sigfillset
+//     result = sigfillset(&myset);
+//     if (result == 0) {
+//         printf("sigfillset succeeded\n");
+//     } else {
+//         printf("sigfillset failed\n");
+//     }
     
-    // 测试 sigaddset
-    result = sigaddset(&myset, SIGINT);
-    if (result == 0) {
-        printf("sigaddset succeeded\n");
-    } else {
-        printf("sigaddset failed\n");
-    }
+//     // 测试 sigaddset
+//     result = sigaddset(&myset, SIGINT);
+//     if (result == 0) {
+//         printf("sigaddset succeeded\n");
+//     } else {
+//         printf("sigaddset failed\n");
+//     }
     
-    // 测试 sigdelset
-    result = sigdelset(&myset, SIGINT);
-    if (result == 0) {
-        printf("sigdelset succeeded\n");
-    } else {
-        printf("sigdelset failed\n");
-    }
+//     // 测试 sigdelset
+//     result = sigdelset(&myset, SIGINT);
+//     if (result == 0) {
+//         printf("sigdelset succeeded\n");
+//     } else {
+//         printf("sigdelset failed\n");
+//     }
     
-    // 测试 sigismember
-    result = sigismember(&myset, SIGINT);
-    if (result == 1) {
-        printf("SIGINT is a member of the signal set\n");
-    } else if (result == 0) {
-        printf("SIGINT is not a member of the signal set\n");
-    } else {
-        printf("sigismember failed\n");
-    }
+//     // 测试 sigismember
+//     result = sigismember(&myset, SIGINT);
+//     if (result == 1) {
+//         printf("SIGINT is a member of the signal set\n");
+//     } else if (result == 0) {
+//         printf("SIGINT is not a member of the signal set\n");
+//     } else {
+//         printf("sigismember failed\n");
+//     }
     
-    return 0;
-}
+//     return 0;
+// }
 
 
 /*你需要实现下面的函数来对进程的信号掩码进行修改：

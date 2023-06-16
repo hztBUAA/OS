@@ -2,6 +2,57 @@
 #include <lib.h>
 #include <mmu.h>
 
+
+void __attribute__((noreturn)) signal_entry(struct Trapframe *tf,int signo,u_int sa_mask0,u_int sa_mask1,u_int sa_handler){
+	//获得待处理信号的处理函数的sa_mask和sa_ahndler 并将当前进程的屏蔽码设置为对应sigaction的sa_mask   
+	//注意结果都应该是一个数值 而不是对应内核存储数据的地址---除了那个用户态处理函数 可以地址
+	struct sigset_t env_mask;
+	struct sigset_t handler_mask;
+	handler_mask.sig[0] = sa_mask0;
+	handler_mask.sig[1] = sa_mask1;
+	//debugf("cow?\n");
+	__sighandler_t user_func = (__sighandler_t)sa_handler;
+	//debugf("user func 函数：%x\n",user_func);
+	int r;
+	//debugf("in signal_entry: signo= %d,tf's adddress = %x,tf->EPC:%x,tf->vaddr:%x\n",signo,tf,tf->cp0_epc,tf->cp0_badvaddr);
+	r = syscall_sigprocmask(SIG_SETMASK,&handler_mask,&env_mask);////////
+	if(r<0){
+		user_panic("syscall_sigprocmask exec misatake");
+	}
+	//debugf("in signal_entry用户态: before the handler\n");
+	//根据sa_handler是否为空进行分类讨论
+	if (!sa_handler)//默认处理方式
+	{
+		if (signo == 9 || signo == 11 || signo == 15)//课程组对特定的三种信号的要求默认处理方式
+		{
+			if (signo == SIGSEGV)
+			{
+				user_panic("Error:SIGSEGV!\n");
+			}
+			
+			exit();
+		}
+		//other signal 忽略  直接接着运行后面的set_trapframe
+		tf->cp0_epc += 4;
+		debugf("no temporary registered sa_handler in user-level");
+	}else{
+		//debugf("in signal_entry用户态: before the handler\n");
+		(*user_func)(signo);//用户自定义的信号处理函数 一定是接收一个signo信号编码作为参数的
+		//执行结束后 将当前进程的信号掩码还原成上一次
+		
+		syscall_sigprocmask(SIG_SETMASK,&env_mask,&handler_mask);
+		tf->cp0_epc += 4;
+		debugf("return to the next instruction that call a kernel,EPC:%x\n",tf->cp0_epc);
+	}
+	r = syscall_set_trapframe(0,tf);
+	//如果上面的set_trapframe系统调用成功调用，用户栈会恢复，上下文环境会变成tf，此时PC也会更改，不会运行下一条panic
+	user_panic("syscall_set_trapframe error");
+
+
+
+}
+
+
 /* Overview:
  *   Map the faulting page to a private writable copy.
  *
@@ -13,7 +64,7 @@
  *  - Otherwise, this handler should map a private writable copy of
  *    the faulting page at the same address.
  */
-static void __attribute__((noreturn)) cow_entry(struct Trapframe *tf) {
+static void __attribute__((noreturn)) cow_entry(struct Trapframe *tf) { // 参数为来到用户态之前的tf
 	u_int va = tf->cp0_badvaddr;
 	u_int perm;
 
@@ -46,7 +97,7 @@ static void __attribute__((noreturn)) cow_entry(struct Trapframe *tf) {
 	syscall_mem_unmap(0, UCOW);
 
 	// Step 7: Return to the faulting routine.
-	int r = syscall_set_trapframe(0, tf);
+	int r = syscall_set_trapframe(0, tf); //恢复处理函数前的tf  这个是为了防止重入  即用户态进行异常处理时 如果进程切换了 或者其他任何打断  可以如同压栈  内核栈都是用一次的即可被覆盖  正是由于有这个set_trapframe
 	user_panic("syscall_set_trapframe returned %d", r);
 }
 
@@ -125,7 +176,9 @@ int fork(void) {
 	if (env->env_user_tlb_mod_entry != (u_int)cow_entry) {
 		try(syscall_set_tlb_mod_entry(0, cow_entry));
 	}
-
+	if (env->env_user_signal_entry != (u_int)signal_entry) {
+		try(syscall_set_user_signal_entry(0,signal_entry));
+	}
 	/* Step 2: Create a child env that's not ready to be scheduled. */
 	// Hint: 'env' should always point to the current env itself, so we should fix it to the
 	// correct value.
@@ -152,7 +205,15 @@ int fork(void) {
 	 */
 	/* Exercise 4.15: Your code here. (2/2) */
 		syscall_set_tlb_mod_entry( child, cow_entry);////////在父进程中对孩子进程进行时设置？
+		//在还没设置子进程为runnable前完成对信号处理函数的copy
+
+
 		syscall_set_env_status(child, ENV_RUNNABLE);
 	//debugf("fork-debug-1-3\n");
 	return child;//能运行到这里 是父进程
 }
+
+void fork1(){
+	debugf("test for undefined\n");
+}
+

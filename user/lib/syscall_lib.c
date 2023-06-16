@@ -81,3 +81,15 @@ int syscall_read_dev(void *va, u_int dev, u_int len) {
 int syscall_sigprocmask(int how, const struct sigset_t *set, struct sigset_t *oset){
 	return msyscall(SYS_sigprocmask,how,set,oset);
 }
+
+int syscall_sigaction(int signum, const struct sigaction *act, struct sigaction *oldact){
+	return msyscall(SYS_sigaction,signum,act,oldact);
+}
+
+int syscall_kill(u_int envid,int signo){
+	return msyscall(SYS_kill,envid,signo);
+}
+
+int syscall_set_user_signal_entry(u_int envid, void (*func)(struct Trapframe *,u_int,u_int,u_int,u_int)){
+	return msyscall(SYS_set_user_signal_entry,envid,func);
+}

@@ -23,6 +23,7 @@ extern volatile struct Env *env;
 
 // debugf
 void debugf(const char *fmt, ...);
+void fork1(void);
 
 void _user_panic(const char *, int, const char *, ...) __attribute__((noreturn));
 void _user_halt(const char *, int, const char *, ...) __attribute__((noreturn));
@@ -39,19 +40,13 @@ void _user_halt(const char *, int, const char *, ...) __attribute__((noreturn));
 		}                                                                                  \
 	} while (0)
 
-/// user_signal.c
-int sigemptyset(struct sigset_t *set);
-int sigfillset(struct sigset_t *set);
-int sigaddset(struct sigset_t *set, int signo);
-int sigdelset(struct sigset_t *set, int signo);
-int sigismember(const struct sigset_t *set, int signo);
-int sigprocmask(int how, const struct sigset_t *set, struct sigset_t *oset);
-int sigpending(struct sigset_t *set);
+
+
 /// fork, spawn
 int spawn(char *prog, char **argv);
 int spawnl(char *prot, char *args, ...);
 int fork(void);
-
+void signal_entry(struct Trapframe *tf,int signo,u_int sa_mask0,u_int sa_mask1,u_int sa_handler) __attribute__((noreturn));
 /// syscalls
 extern int msyscall(int, ...);
 
@@ -61,6 +56,7 @@ u_int syscall_getenvid(void);
 void syscall_yield(void);
 int syscall_env_destroy(u_int envid);
 int syscall_set_tlb_mod_entry(u_int envid, void (*func)(struct Trapframe *));
+
 int syscall_mem_alloc(u_int envid, void *va, u_int perm);
 int syscall_mem_map(u_int srcid, void *srcva, u_int dstid, void *dstva, u_int perm);
 int syscall_mem_unmap(u_int envid, void *va);
@@ -78,10 +74,20 @@ int syscall_cgetc();
 int syscall_write_dev(void *, u_int, u_int);
 int syscall_read_dev(void *, u_int, u_int);
 int syscall_sigprocmask(int how, const struct sigset_t *set, struct sigset_t *oset);
+int syscall_sigaction(int signum, const struct sigaction *act, struct sigaction *oldact);
+int syscall_kill(u_int envid, int signo);
+int syscall_set_user_signal_entry(u_int envid, void (*func)(struct Trapframe *,u_int,u_int,u_int,u_int));
 // ipc.c
 void ipc_send(u_int whom, u_int val, const void *srcva, u_int perm);
 u_int ipc_recv(u_int *whom, void *dstva, u_int *perm);
-
+int sigemptyset(struct sigset_t *set);
+int sigfillset(struct sigset_t *set);
+int sigaddset(struct sigset_t *set, int signo);
+int sigdelset(struct sigset_t *set, int signo);
+int sigismember(const struct sigset_t *set, int signo);
+int sigprocmask(int how, const struct sigset_t *set, struct sigset_t *oset);
+int sigpending(struct sigset_t *set);
+int kill(u_int envid, int sig);
 // wait.c
 void wait(u_int envid);
 
