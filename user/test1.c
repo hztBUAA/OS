@@ -137,9 +137,11 @@
  * 简单的信号测试 
 */
 int global = 0;
+struct sigset_t set1;
 void handler(int num) {
-    debugf("Reach handler, now the signum is %d!\n", num);
+    debugf("Reach handler, now the signum is %d,在此之前global为 %d!\n", num,global);
     global = 1;
+    debugf("-----------对5号信号的处理使得全局变量变为1----------\n");
 }
 
 #define TEST_NUM 5
@@ -149,22 +151,29 @@ int main(int argc, char **argv) {
     debugf("r = %d\n",r);
     struct sigset_t set;
     sigemptyset(&set);
+    sigaddset(&set,2);
+    debugf("----------after add 2 into set,set = %d-------\n",set);
+    sigdelset(&set,2);
+    debugf("-----------after del 2 from set,set = %d-------\n",set);
+    sigaddset(&set,2);
+    debugf("----------now,after add 2 into set,set = %d-------\n",set);
     struct sigaction sig;
     sig.sa_handler = handler;
     sig.sa_mask = set;
     panic_on(sigaction(TEST_NUM, &sig, NULL));
     sigaddset(&set, TEST_NUM);
+    debugf("---------进程的掩码将被设置为set,即2、5号均会被阻塞--------\n");
     panic_on(sigprocmask(0, &set, NULL));
-    debugf("before send signal\n");
+    debugf("----------进程给自己发送一个5号信号------------\n");
     kill(0, TEST_NUM);
-    debugf("after send signal\n");
+    //debugf("after send signal\n");
     int ans = 0;
-    for (int i = 0; i < 10000000; i++) {
+    for (int i = 0; i < 100; i++) {
         ans += i;
     }
     debugf("cal the ans:%d\n",ans);
-    debugf("now the signal is not blocked\n");
-    panic_on(sigprocmask(1, &set, NULL));
-    debugf("global = %d.\n", global);
+    debugf("--------now the signal is not blocked,进程的掩码移除了5号,并把全局变量设置为进程原来的掩码,也就是应该是十进制的18--------\n");
+    panic_on(sigprocmask(1, &set, &set1));
+    debugf("global = %d,进程原来的掩码是set1 = %d.\n", global,set1);
     return 0;
 }

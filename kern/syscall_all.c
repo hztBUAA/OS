@@ -583,18 +583,8 @@ int sys_sigprocmask(int how, const struct sigset_t *set, struct sigset_t *oset){
     case SIG_BLOCK:
 		if (oset)
 		{
-			// printk("11:%x %x\n",(void *)(&(oset->sig[0])),(void *)&((curenv->blocked[0])));
-			// printk("全局变量：%d\n",oset->sig[0]);
-			// printk("内核数据：%d\n",curenv->blocked[0]);
 			oset->sig[0] = curenv->blocked[0];
-			//memcpy((void *)(&(oset->sig[0])),(void *)(&(curenv->blocked[0])),sizeof(int));
-			// printk("%d\n",oset->sig[0]);
-			// printk("11-1,oset->sig[0] =%d ,oset->sig[0]'s addr:%x,oset->sig[1]'s addr:%x\n",oset->sig[0],&(oset->sig[0]),&(oset->sig[1]));
-			// printk("1\n");
-			// printk("11-2,oset->sig[0] =%d ,oset->sig[0]'s addr:%x,oset->sig[1]'s addr:%x\n",oset->sig[0],&(oset->sig[0]),&(oset->sig[1]));
 			oset->sig[1] = curenv->blocked[1];
-			//memcpy((void *)(&(oset->sig[1])),(void *)(&(curenv->blocked[1])),sizeof(int));
-			//printk("11-2\n");
 		}
 		if (set)
 		{

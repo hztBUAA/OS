@@ -47,9 +47,6 @@ void __attribute__((noreturn)) signal_entry(struct Trapframe *tf,int signo,u_int
 	r = syscall_set_trapframe(0,tf);
 	//如果上面的set_trapframe系统调用成功调用，用户栈会恢复，上下文环境会变成tf，此时PC也会更改，不会运行下一条panic
 	user_panic("syscall_set_trapframe error");
-
-
-
 }
 
 

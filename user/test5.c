@@ -1,12 +1,9 @@
 #include <lib.h>
-
-
 /**
  * 测试fork后的父子进程的对信号的继承和信号处理函数的继承   以及父子进程对局部变量的写时复制特性
  * 可算是信号的强测！！！！！！  结果符合预期 并提供了注释 供助教审核
 */
 int global = 0;
-
 void handler (int num) {
     //u_int id = syscall_getenvid;
     debugf ("Reach handler, now the signum is %d!\n" ,num);
@@ -82,7 +79,7 @@ int main (int argc , char ** argv ) {
     
     } else{
         sigemptyset (&set) ;
-        debugf("-----------------子进程现在继承了父进程的信号处理函数,接下来将全部解除阻塞,并处理刚刚父进程发出的signal-2------------------------------------\n");
+        debugf("-----------------子进程现在继承了父进程的信号处理函数,接下来将全部解除阻塞,并处理刚刚父进程发出的signal-2-------------------\n");
         sigprocmask(2,&set,NULL);//子进程可以处理接收到的信号 但是只有两个 ：1 & 2  虽然2信号发送了两次 但是不可靠算作一次
         
         for ( int i =0;i <10000000; i++) 
