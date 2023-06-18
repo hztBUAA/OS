@@ -25,11 +25,11 @@ int sigfillset(sigset_t *set) {
     if (set == NULL) {
         return -1;
     }
-    set->sig[0] = ~0;
-	set->sig[1] = ~0; 
+    // set->sig[0] = ~0;
+	// set->sig[1] = ~0; 
     // 将信号集中的所有位置位
     //*set = ~0;
-    
+    memset((void *)set,-1,sizeof(set));
     return 0;
 }
 
